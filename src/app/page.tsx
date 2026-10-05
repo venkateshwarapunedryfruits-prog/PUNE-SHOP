@@ -44,7 +44,7 @@ export default async function Home() {
             <p className="font-display text-2xl font-semibold leading-none tracking-wide text-forest sm:text-[1.9rem]">
               {site.name}
             </p>
-            <p className="eyebrow mt-1.5 text-[0.6rem] leading-snug tracking-[0.14em] text-gold sm:text-[0.68rem] sm:tracking-[0.22em]">{site.legalName.replace(`${site.name} `, "")}</p>
+            <p className="eyebrow mt-1.5 text-[0.6rem] leading-snug tracking-[0.14em] text-gold sm:text-[0.68rem] sm:tracking-[0.22em]">{site.tagline}</p>
           </div>
           <a
             href="#visit"

@@ -1,6 +1,8 @@
 // Business details shown on the website — edit freely.
 export const site = {
   name: "Venkateshwara",
+  // Small gold line under the name in the header, also used in the browser tab title.
+  tagline: "Dry Fruit Shop Pune",
   legalName: "Venkateshwara Co-operative Power & Agro Processing Ltd.",
   address: "Shoppers Orbit, Pune, Maharashtra",
   // What Google Maps should search for (place name or "lat,lng").

@@ -15,8 +15,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: `${site.name} — Product Catalogue`,
-  description: `Product catalogue and price list of ${site.legalName}`,
+  title: `${site.name} — ${site.tagline}`,
+  description: `${site.tagline}: product catalogue and price list of ${site.legalName}`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
