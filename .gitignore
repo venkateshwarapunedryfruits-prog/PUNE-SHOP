@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# one-shot setup script with the admin login password
+*.local.sql
 
 # vercel
 .vercel
