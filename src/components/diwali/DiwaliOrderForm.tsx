@@ -19,8 +19,6 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
   });
 
   const [phone, setPhone] = useState("");
-  const [deliveryType, setDeliveryType] = useState<"pickup" | "delivery">("pickup");
-
   const isPhoneValid = validateIndianMobile(phone);
 
   function updateQty(id: string, delta: number) {
@@ -46,8 +44,7 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
           `Customer: ${state.customerName}\n` +
           `Phone: ${state.customerPhone}\n\n` +
           `*Items:*\n${state.itemsSummary}\n\n` +
-          `*Total Amount:* ₹${state.totalPrice}\n` +
-          `Delivery: ${deliveryType === "pickup" ? "Store Pickup (Shoppers Orbit)" : "Home Delivery"}\n\n` +
+          `*Total Amount:* ₹${state.totalPrice}\n\n` +
           `Please confirm my order. Thank you!`
       )
     : "";
@@ -75,7 +72,7 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
             {state.itemsSummary}
           </pre>
           <div className="mt-3 flex items-baseline justify-between border-t border-line pt-2">
-            <span className="font-bold text-ink">Total Payable:</span>
+            <span className="font-bold text-ink">Total:</span>
             <span className="text-lg font-extrabold text-forest">{formatPrice(state.totalPrice)}</span>
           </div>
         </div>
@@ -190,7 +187,7 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
       <div className="mt-6 space-y-4 border-t border-line pt-5">
         <div className="border-b border-line/60 pb-3">
           <span className="eyebrow text-gold-deep">Step 2 • Customer Information</span>
-          <h4 className="font-display text-lg font-bold text-forest">Your Contact & Delivery</h4>
+          <h4 className="font-display text-lg font-bold text-forest">Your Contact Details</h4>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -235,64 +232,6 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
           </div>
         </div>
 
-        {/* Delivery Mode */}
-        <div>
-          <span className="eyebrow mb-1.5 block text-muted">Delivery Option</span>
-          <div className="grid grid-cols-2 gap-3">
-            <label
-              className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border p-3 text-xs font-semibold transition ${
-                deliveryType === "pickup"
-                  ? "border-forest bg-forest text-paper"
-                  : "border-line bg-white text-muted hover:text-ink"
-              }`}
-            >
-              <input
-                type="radio"
-                name="delivery_type"
-                value="pickup"
-                checked={deliveryType === "pickup"}
-                onChange={() => setDeliveryType("pickup")}
-                className="hidden"
-              />
-              <span>🏬 Store Pickup (Shoppers Orbit)</span>
-            </label>
-
-            <label
-              className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border p-3 text-xs font-semibold transition ${
-                deliveryType === "delivery"
-                  ? "border-forest bg-forest text-paper"
-                  : "border-line bg-white text-muted hover:text-ink"
-              }`}
-            >
-              <input
-                type="radio"
-                name="delivery_type"
-                value="delivery"
-                checked={deliveryType === "delivery"}
-                onChange={() => setDeliveryType("delivery")}
-                className="hidden"
-              />
-              <span>🚚 Home Delivery (Pune)</span>
-            </label>
-          </div>
-        </div>
-
-        {deliveryType === "delivery" && (
-          <div>
-            <label className="eyebrow mb-1.5 block text-muted" htmlFor="address">
-              Delivery Address in Pune *
-            </label>
-            <textarea
-              id="address"
-              name="address"
-              rows={2}
-              required
-              placeholder="Flat no, Building name, Area / Landmark, Pune"
-              className="field text-xs sm:text-sm"
-            />
-          </div>
-        )}
-
         <div>
           <label className="eyebrow mb-1.5 block text-muted" htmlFor="notes">
             Special Requests / Corporate Message (Optional)
@@ -328,9 +267,6 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
             </span>
           )}
         </button>
-        <p className="mt-2 text-center text-[0.68rem] text-muted">
-          Payment on delivery or store pickup. We verify every order immediately.
-        </p>
       </div>
     </form>
   );

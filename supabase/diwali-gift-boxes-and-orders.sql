@@ -15,7 +15,7 @@ create table if not exists public.diwali_orders (
   unit_price     numeric(10,2) not null check (unit_price >= 0),
   total_price    numeric(10,2) not null check (total_price >= 0),
   items_detail   jsonb,
-  delivery_type  text not null default 'pickup',
+  delivery_type  text,
   address        text,
   notes          text,
   status         text not null default 'new' check (status in ('new', 'confirmed', 'packed', 'delivered', 'cancelled')),

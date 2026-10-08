@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DIWALI_BOXES, DRY_FRUIT_RATES } from "@/lib/diwali";
+import { DIWALI_BOXES } from "@/lib/diwali";
 import { DiwaliOrderForm } from "@/components/diwali/DiwaliOrderForm";
 import { site } from "@/lib/site";
 import { formatPrice } from "@/lib/types";
@@ -124,40 +124,6 @@ export default function DiwaliPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* Transparent Costing Table */}
-        <section className="mt-12 rounded-3xl border border-line bg-paper p-5 sm:p-8">
-          <div className="border-b border-line pb-4">
-            <span className="eyebrow text-gold-deep">100% Transparency</span>
-            <h3 className="font-display mt-0.5 text-xl font-bold text-forest sm:text-2xl">
-              Our Costing & Per-Kilogram Dry Fruit Rates
-            </h3>
-            <p className="text-xs text-muted">
-              We believe in complete pricing honesty. Every box is calculated based on exact wholesale market rates plus packaging.
-            </p>
-          </div>
-
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs sm:text-sm">
-              <thead>
-                <tr className="border-b border-line bg-ivory text-muted font-bold uppercase text-[0.68rem]">
-                  <th className="py-2.5 px-3">Dry Fruit Item</th>
-                  <th className="py-2.5 px-3 text-right">Wholesale Rate</th>
-                  <th className="py-2.5 px-3 text-right">Cost Per Gram</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line/60">
-                {DRY_FRUIT_RATES.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-ivory/30">
-                    <td className="py-2 px-3 font-semibold text-ink">{item.item}</td>
-                    <td className="py-2 px-3 text-right font-bold text-forest">₹{item.ratePerKg} {item.item.includes("Packing") ? "" : "/ kg"}</td>
-                    <td className="py-2 px-3 text-right text-muted">{item.perGram}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </section>
 

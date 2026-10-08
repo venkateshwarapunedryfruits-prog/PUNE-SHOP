@@ -104,7 +104,7 @@ export type DiwaliOrder = {
   unit_price: number;
   total_price: number;
   items_detail?: OrderItemDetail[];
-  delivery_type: "pickup" | "delivery";
+  delivery_type?: string | null;
   address?: string | null;
   notes?: string | null;
   status: "new" | "confirmed" | "packed" | "delivered" | "cancelled";

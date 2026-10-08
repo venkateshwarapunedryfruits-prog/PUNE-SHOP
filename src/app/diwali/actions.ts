@@ -18,8 +18,6 @@ export type OrderFormState =
 export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): Promise<OrderFormState> {
   const customerName = String(formData.get("customer_name") ?? "").trim();
   const customerPhone = String(formData.get("customer_phone") ?? "").replace(/\D/g, "");
-  const deliveryType = String(formData.get("delivery_type") ?? "pickup") as "pickup" | "delivery";
-  const address = String(formData.get("address") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
   if (!customerName) {
@@ -56,10 +54,6 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
     return { error: "Please select at least 1 Diwali gift box to order." };
   }
 
-  if (deliveryType === "delivery" && !address) {
-    return { error: "Please provide your delivery address in Pune." };
-  }
-
   const boxTypeSummary = items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const itemsSummary = items.map((i) => `• ${i.quantity}x ${i.name} (₹${i.subtotal})`).join("\n");
 
@@ -71,8 +65,8 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
     unit_price: items[0].unitPrice,
     total_price: calculatedTotal,
     items_detail: items,
-    delivery_type: deliveryType,
-    address: address || null,
+    delivery_type: null,
+    address: null,
     notes: notes || null,
     status: "new",
   };

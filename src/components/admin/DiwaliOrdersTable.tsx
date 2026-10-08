@@ -236,18 +236,22 @@ export function DiwaliOrdersTable({ orders }: Props) {
                       <span className="font-semibold text-ink">{order.box_type}</span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 text-muted">
-                      <span>
-                        <strong>Delivery Mode:</strong>{" "}
-                        {order.delivery_type === "delivery" ? "🚚 Home Delivery" : "🏬 Store Pickup (Shoppers Orbit)"}
-                      </span>
+                    {(order.delivery_type || order.address) && (
+                      <div className="flex flex-wrap items-center gap-4 text-muted">
+                        {order.delivery_type && (
+                          <span>
+                            <strong>Mode:</strong>{" "}
+                            {order.delivery_type === "delivery" ? "🚚 Delivery" : "🏬 Store Pickup"}
+                          </span>
+                        )}
 
-                      {order.address && (
-                        <span>
-                          <strong>Address:</strong> {order.address}
-                        </span>
-                      )}
-                    </div>
+                        {order.address && (
+                          <span>
+                            <strong>Address:</strong> {order.address}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {order.notes && (
                       <div className="text-muted">
