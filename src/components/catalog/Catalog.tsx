@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import type { Category, Product } from "@/lib/types";
 import { ProductCard } from "./ProductCard";
@@ -74,6 +75,61 @@ export function Catalog({ categories, products, error }: Props) {
                 activeCategoryId={active}
                 variant="hero"
               />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* -------------------------------------------------------------
+          SUB-HERO BANNER FOR DIWALI GIFT BOXES (Bottom of PDF section)
+          ------------------------------------------------------------- */}
+      <div className="mx-auto max-w-7xl px-4 pt-3.5 sm:px-8 sm:pt-4">
+        <div className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-r from-gold-soft/80 via-paper to-gold-soft/80 p-4 shadow-xs sm:p-6">
+          <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🪔</span>
+                <span className="rounded-full bg-forest px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-gold-soft">
+                  Diwali Festive Special
+                </span>
+                <span className="hidden text-xs font-bold text-gold-deep sm:inline">
+                  Starting at ₹240 / Box
+                </span>
+              </div>
+
+              <h2 className="font-display mt-1 text-xl font-bold text-forest sm:text-2xl md:text-[1.65rem]">
+                Diwali Special Dry Fruit Gift Boxes
+              </h2>
+              <p className="mt-0.5 text-xs text-muted sm:text-sm">
+                Handcrafted 4-box & 6-box gift sets with Cashew, Almonds, Pista, Raisins & Walnut.
+                Custom order with your exact quantities and live price calculator.
+              </p>
+
+              {/* Quick price pills */}
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[0.68rem] font-semibold">
+                <span className="rounded-md border border-line bg-white/90 px-2 py-0.5 text-ink shadow-2xs">
+                  4-Box (50g): <strong className="text-forest">₹240</strong>
+                </span>
+                <span className="rounded-md border border-line bg-white/90 px-2 py-0.5 text-ink shadow-2xs">
+                  4-Box (100g): <strong className="text-forest">₹450</strong>
+                </span>
+                <span className="rounded-md border border-line bg-white/90 px-2 py-0.5 text-ink shadow-2xs">
+                  6-Box (50g): <strong className="text-forest">₹330</strong>
+                </span>
+                <span className="rounded-md border border-line bg-white/90 px-2 py-0.5 text-ink shadow-2xs">
+                  6-Box (100g): <strong className="text-forest">₹640</strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="shrink-0 pt-1 sm:pt-0">
+              <Link
+                href="/diwali"
+                className="group inline-flex items-center gap-2 rounded-full bg-forest px-5 py-3 text-xs font-bold uppercase tracking-wider text-paper shadow-md transition hover:bg-forest-2 active:scale-95"
+              >
+                <span>Customize & Order Boxes</span>
+                <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+              </Link>
             </div>
           </div>
         </div>

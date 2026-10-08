@@ -261,3 +261,29 @@ export async function setWholesale(id: string, value: boolean): Promise<FormStat
   refresh();
   return { ok: true };
 }
+
+/* ---------------- Diwali Orders ---------------- */
+
+export async function updateDiwaliOrderStatus(id: string, status: string): Promise<FormState> {
+  const supabase = await requireAdmin();
+  const { error } = await supabase
+    .from("diwali_orders")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/diwali-orders");
+  return { ok: true };
+}
+
+export async function deleteDiwaliOrder(id: string): Promise<FormState> {
+  const supabase = await requireAdmin();
+  const { error } = await supabase
+    .from("diwali_orders")
+    .delete()
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/diwali-orders");
+  return { ok: true };
+}
