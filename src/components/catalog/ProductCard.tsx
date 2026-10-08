@@ -37,119 +37,94 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
   const { displayName, variants } = extractVariants(p.name);
 
   // -------------------------------------------------------------------
-  // 1. TABLE-STYLE VIEW (Default: Simple, easy, compact rate table)
+  // 1. COMPACT TABLE CARD (Default: Simple, crisp, big bold text, no MRP strikethrough)
   // -------------------------------------------------------------------
   if (viewMode === "table") {
     return (
-      <article className="group flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-line bg-paper p-4 shadow-xs transition duration-300 hover:-translate-y-0.5 hover:border-gold/60 hover:shadow-luxe sm:rounded-3xl sm:p-5">
+      <article className="group flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-line/80 bg-paper p-3.5 shadow-xs transition duration-200 hover:border-gold hover:shadow-md sm:rounded-2xl sm:p-4">
         <div>
-          {/* Header Bar */}
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold-soft/70 px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-gold-deep sm:text-[0.68rem]">
-              <TableMiniIcon /> Rate Card
-            </span>
+          {/* Product Name in BIG, clear, premium bold text */}
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-display text-lg font-bold leading-tight text-ink sm:text-[1.3rem]">
+              {displayName}
+            </h3>
 
-            {/* Photo count indicator if photos exist */}
             {hasImages && (
-              <span className="inline-flex items-center gap-1 text-[0.68rem] text-muted">
-                <CameraMiniIcon /> {imageList.length} photo{imageList.length > 1 ? "s" : ""}
+              <span className="shrink-0 rounded-md bg-gold-soft/60 px-1.5 py-0.5 text-[0.65rem] font-semibold text-gold-deep">
+                {imageList.length} photo{imageList.length > 1 ? "s" : ""}
               </span>
             )}
           </div>
 
-          {/* Product Name in prominent text */}
-          <h3 className="font-display mt-2 text-lg font-bold leading-snug text-ink transition group-hover:text-forest sm:text-2xl">
-            {displayName}
-          </h3>
-
           {/* Fragrance / Variant chips if multiple fragrances in one product */}
           {variants.length > 0 && (
-            <div className="mt-2.5">
-              <p className="eyebrow text-[0.6rem] text-muted">
-                Available in {variants.length} Fragrances:
-              </p>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {variants.map((v, i) => (
-                  <span
-                    key={i}
-                    className="rounded-md border border-line bg-white/90 px-2 py-0.5 text-[0.68rem] font-medium text-ink shadow-2xs"
-                  >
-                    {v}
-                  </span>
-                ))}
-              </div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {variants.map((v, i) => (
+                <span
+                  key={i}
+                  className="rounded border border-line bg-white px-1.5 py-0.5 text-[0.66rem] font-medium text-ink"
+                >
+                  {v}
+                </span>
+              ))}
             </div>
           )}
 
-          {/* Simple & Easy Price Table */}
-          <div className="mt-3.5 overflow-hidden rounded-xl border border-line bg-white/95 shadow-2xs sm:mt-4">
+          {/* Clean, compact rate table */}
+          <div className="mt-3 overflow-hidden rounded-xl border border-line bg-white">
             <table className="w-full border-collapse text-left text-xs sm:text-sm">
               <thead>
-                <tr className="border-b border-line bg-ivory/80 text-[0.64rem] font-semibold uppercase tracking-wider text-muted sm:text-[0.68rem]">
-                  <th className="px-3 py-2">Rate Type</th>
-                  <th className="px-3 py-2 text-right">Price</th>
-                  <th className="px-3 py-2 text-right">Benefit / MOQ</th>
+                <tr className="border-b border-line bg-ivory/60 text-[0.66rem] font-bold uppercase tracking-wider text-muted sm:text-[0.7rem]">
+                  <th className="px-2.5 py-1.5 sm:px-3 sm:py-2">Tier</th>
+                  <th className="px-2.5 py-1.5 text-right sm:px-3 sm:py-2">Rate</th>
+                  <th className="px-2.5 py-1.5 text-right sm:px-3 sm:py-2">Terms</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line/60">
-                {/* MRP Row */}
+                {/* MRP Row — NO strikethrough, clean clear number */}
                 <tr>
-                  <td className="px-3 py-2.5 font-medium text-muted">MRP</td>
-                  <td className="px-3 py-2.5 text-right font-medium text-muted line-through">
+                  <td className="px-2.5 py-2 font-medium text-muted sm:px-3">MRP</td>
+                  <td className="px-2.5 py-2 text-right text-sm font-semibold text-ink sm:px-3 sm:text-base">
                     {formatPrice(p.mrp)}
                   </td>
-                  <td className="px-3 py-2.5 text-right text-[0.7rem] text-muted sm:text-xs">
-                    Standard Retail
+                  <td className="px-2.5 py-2 text-right text-[0.7rem] text-muted sm:px-3 sm:text-xs">
+                    Standard
                   </td>
                 </tr>
 
                 {/* Member Rate Row */}
                 <tr className="bg-forest/[0.04]">
-                  <td className="px-3 py-2.5 font-bold text-forest">Member Rate</td>
-                  <td className="px-3 py-2.5 text-right text-sm font-bold text-forest sm:text-base">
+                  <td className="px-2.5 py-2 font-bold text-forest sm:px-3">Member</td>
+                  <td className="px-2.5 py-2 text-right text-base font-extrabold text-forest sm:px-3 sm:text-lg">
                     {formatPrice(p.member_price)}
                   </td>
-                  <td className="px-3 py-2.5 text-right text-[0.7rem] font-bold text-forest sm:text-xs">
+                  <td className="px-2.5 py-2 text-right text-[0.72rem] font-bold text-forest sm:px-3 sm:text-xs">
                     {savings > 0 ? `Save ${formatPrice(savings)}` : "Special"}
                   </td>
                 </tr>
 
                 {/* Wholesale Rate Row */}
                 {hasWholesale ? (
-                  <tr className="bg-gold-soft/40">
-                    <td className="px-3 py-2.5 font-semibold text-gold-deep">Wholesale Rate</td>
-                    <td className="px-3 py-2.5 text-right text-sm font-bold text-gold-deep sm:text-base">
+                  <tr className="bg-gold-soft/30">
+                    <td className="px-2.5 py-2 font-bold text-gold-deep sm:px-3">Wholesale</td>
+                    <td className="px-2.5 py-2 text-right text-base font-extrabold text-gold-deep sm:px-3 sm:text-lg">
                       {formatPrice(p.wholesale_price)}
                     </td>
-                    <td className="px-3 py-2.5 text-right text-[0.7rem] font-semibold text-gold-deep sm:text-xs">
+                    <td className="px-2.5 py-2 text-right text-[0.72rem] font-semibold text-gold-deep sm:px-3 sm:text-xs">
                       Min {p.wholesale_min_qty} pcs
                     </td>
                   </tr>
-                ) : (
-                  <tr className="text-muted/60">
-                    <td className="px-3 py-2 text-[0.7rem]">Wholesale</td>
-                    <td className="px-3 py-2 text-right text-[0.7rem]">—</td>
-                    <td className="px-3 py-2 text-right text-[0.68rem]">Retail qty only</td>
-                  </tr>
-                )}
+                ) : null}
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* Footer info bar */}
-        <div className="mt-4 flex items-center justify-between border-t border-line/60 pt-3 text-xs">
-          <span className="flex items-center gap-1 font-medium text-forest">
-            <CheckCircleIcon /> In Stock & Ready
-          </span>
-          <span className="eyebrow text-gold">Official Store Rate</span>
         </div>
       </article>
     );
   }
 
   // -------------------------------------------------------------------
-  // 2. PHOTO CARD VIEW (With images & multi-image carousel)
+  // 2. PHOTO CARD VIEW (With images & big text placeholder)
   // -------------------------------------------------------------------
   const currentImageUrl = imageList[activeImgIndex] || imageList[0];
   const hasMultipleImages = imageList.length > 1;
@@ -165,8 +140,8 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
   }
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-paper transition duration-300 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-luxe sm:rounded-3xl">
-      {/* Image container OR Named Placeholder */}
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-line/80 bg-paper transition duration-200 hover:border-gold hover:shadow-md sm:rounded-2xl">
+      {/* Image or Named Typography Tile */}
       <div className="relative aspect-square overflow-hidden bg-white">
         {showImage ? (
           <>
@@ -175,41 +150,32 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
               alt={p.name}
               fill
               sizes="(min-width: 1280px) 300px, (min-width: 1024px) 25vw, 50vw"
-              className="object-contain p-3 transition duration-500 group-hover:scale-[1.04] sm:p-5"
+              className="object-contain p-2.5 transition duration-300 group-hover:scale-[1.03] sm:p-4"
             />
 
-            {/* Multi-image indicators & navigation */}
             {hasMultipleImages && (
               <>
-                {/* Photo counter */}
-                <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-forest/85 px-2 py-0.5 text-[0.62rem] font-semibold text-paper backdrop-blur-xs">
-                  <CameraMiniIcon />
-                  <span>
-                    {activeImgIndex + 1}/{imageList.length}
-                  </span>
+                <div className="absolute right-2 top-2 z-10 rounded-full bg-forest/85 px-2 py-0.5 text-[0.62rem] font-semibold text-paper">
+                  {activeImgIndex + 1}/{imageList.length}
                 </div>
 
-                {/* Left arrow */}
                 <button
                   type="button"
                   onClick={handlePrev}
-                  aria-label="Previous photo"
-                  className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1.5 text-forest shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100"
+                  aria-label="Previous"
+                  className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1 text-forest shadow sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <ChevronLeftIcon />
                 </button>
-
-                {/* Right arrow */}
                 <button
                   type="button"
                   onClick={handleNext}
-                  aria-label="Next photo"
-                  className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1.5 text-forest shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100"
+                  aria-label="Next"
+                  className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1 text-forest shadow sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <ChevronRightIcon />
                 </button>
 
-                {/* Bottom dots */}
                 <div className="absolute inset-x-0 bottom-2 z-10 flex justify-center gap-1">
                   {imageList.map((_, idx) => (
                     <button
@@ -221,7 +187,7 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
                         setActiveImgIndex(idx);
                       }}
                       className={`size-1.5 rounded-full transition-all ${
-                        idx === activeImgIndex ? "w-3 bg-gold" : "bg-ink/20 hover:bg-ink/40"
+                        idx === activeImgIndex ? "w-3 bg-gold" : "bg-ink/20"
                       }`}
                     />
                   ))}
@@ -230,89 +196,47 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
             )}
           </>
         ) : (
-          /* NO IMAGE: KEEP PLACEHOLDER WITH PRODUCT NAME IN BIG TEXT */
-          <div className="relative flex size-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#12301f] to-[#1e4a32] p-5 text-center shadow-inner">
-            <div className="pointer-events-none absolute inset-2.5 rounded-2xl border border-gold/30" />
-            <div className="pointer-events-none absolute -bottom-5 -right-5 font-display text-8xl font-black text-white/[0.04]">
-              V
-            </div>
-            <span className="eyebrow mb-1.5 text-[0.6rem] tracking-[0.24em] text-gold-soft">
-              Venkateshwara
-            </span>
-            <p className="font-display text-xl font-bold leading-tight text-paper sm:text-2xl md:text-[1.55rem] px-2">
+          /* NO IMAGE: BIG NAME TYPOGRAPHY TILE */
+          <div className="relative flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#12301f] to-[#1e4a32] p-4 text-center">
+            <div className="pointer-events-none absolute inset-2 rounded-xl border border-gold/30" />
+            <p className="font-display px-2 text-xl font-bold leading-snug text-paper sm:text-2xl">
               {displayName}
             </p>
-            <span className="mt-3 inline-block rounded-full bg-gold/20 px-2.5 py-0.5 text-[0.62rem] font-medium tracking-wider text-gold-soft border border-gold/30">
-              Pure Quality
-            </span>
           </div>
         )}
       </div>
 
-      {/* Card Details */}
-      <div className="flex flex-1 flex-col border-t border-line p-3.5 sm:p-5">
-        <h3 className="font-display text-lg font-semibold leading-snug text-ink sm:text-[1.35rem]">
+      {/* Details */}
+      <div className="flex flex-1 flex-col border-t border-line/80 p-3 sm:p-3.5">
+        <h3 className="font-display text-base font-bold leading-snug text-ink sm:text-lg">
           {displayName}
         </h3>
 
-        {/* Variants pill list if multiple fragrances */}
-        {variants.length > 0 && (
-          <p className="mt-1 text-xs text-muted">
-            {variants.length} fragrances available
-          </p>
-        )}
-
-        <dl className="mt-3 space-y-1.5 text-sm sm:mt-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-            <dt className="eyebrow text-muted">MRP</dt>
-            <dd className="text-muted line-through">{formatPrice(p.mrp)}</dd>
+        <div className="mt-2.5 space-y-1 text-xs sm:text-sm">
+          {/* MRP — NO STRIKETHROUGH */}
+          <div className="flex items-baseline justify-between">
+            <span className="font-medium text-muted">MRP</span>
+            <span className="font-semibold text-ink">{formatPrice(p.mrp)}</span>
           </div>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-            <dt className="eyebrow text-forest">Member</dt>
-            <dd className="text-base font-bold text-forest sm:text-lg">{formatPrice(p.member_price)}</dd>
-          </div>
-        </dl>
 
-        <div className="mt-auto pt-3 sm:pt-4">
-          {hasWholesale ? (
-            <div className="rounded-xl border border-gold/30 bg-gold-soft/60 px-3 py-2">
-              <p className="eyebrow text-gold-deep">Wholesale</p>
-              <div className="mt-0.5 flex flex-wrap items-baseline justify-between gap-x-2">
-                <span className="font-bold text-gold-deep">{formatPrice(p.wholesale_price)}</span>
-                <span className="text-[0.7rem] text-muted sm:text-xs">Min. {p.wholesale_min_qty} pcs</span>
-              </div>
-            </div>
-          ) : null}
+          {/* Member Price */}
+          <div className="flex items-baseline justify-between">
+            <span className="font-bold text-forest">Member</span>
+            <span className="text-base font-extrabold text-forest">{formatPrice(p.member_price)}</span>
+          </div>
         </div>
+
+        {hasWholesale && (
+          <div className="mt-2.5 rounded-lg border border-gold/30 bg-gold-soft/50 px-2.5 py-1.5 text-xs">
+            <div className="flex items-baseline justify-between font-bold text-gold-deep">
+              <span>Wholesale</span>
+              <span className="text-sm">{formatPrice(p.wholesale_price)}</span>
+            </div>
+            <span className="text-[0.68rem] text-muted">Min. {p.wholesale_min_qty} pcs</span>
+          </div>
+        )}
       </div>
     </article>
-  );
-}
-
-function TableMiniIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-3 text-gold-deep" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M3 3h18v18H3z" />
-      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-    </svg>
-  );
-}
-
-function CameraMiniIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-3 text-gold" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-3 text-forest" fill="none" stroke="currentColor" strokeWidth={2.5}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
   );
 }
 

@@ -11,7 +11,6 @@ type Props = {
   error?: string;
 };
 
-// In the "All" view each category shows this many products, then a "View all" button.
 const PREVIEW_COUNT = 4;
 
 export function Catalog({ categories, products, error }: Props) {
@@ -20,11 +19,12 @@ export function Catalog({ categories, products, error }: Props) {
   const [viewMode, setViewMode] = useState<"table" | "photo">("table");
   const topRef = useRef<HTMLDivElement>(null);
 
-  // Switching category while scrolled down the page jumps back to the top of the catalogue.
   function selectCategory(id: string) {
     setActive(id);
     const top = topRef.current;
-    if (top && top.getBoundingClientRect().top < 0) top.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (top && top.getBoundingClientRect().top < 0) {
+      top.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   // Only categories that actually have products on display
@@ -42,15 +42,79 @@ export function Catalog({ categories, products, error }: Props) {
     .map((s) => ({ ...s, products: q ? s.products.filter((p) => p.name.toLowerCase().includes(q)) : s.products }))
     .filter((s) => s.products.length > 0);
   const resultCount = visible.reduce((n, s) => n + s.products.length, 0);
-  // Only the "All" view is shortened; a single category or a search shows everything.
   const preview = active === "all" && !q;
 
   return (
     <div ref={topRef}>
-      {/* Toolbar: categories + search + view toggle + PDF download */}
-      <div className="sticky top-0 z-20 border-b border-line bg-ivory/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2.5 px-5 pb-3 pt-1.5 sm:px-8 md:flex-row md:items-center md:justify-between md:py-0">
-          <nav className="no-scrollbar -mx-5 flex overflow-x-auto px-1.5 sm:-mx-8 sm:px-4.5 md:mx-0 md:gap-1 md:px-0" aria-label="Categories">
+      {/* -------------------------------------------------------------
+          HERO CARD FOR PDF RATE LIST (approx 20% viewport height)
+          ------------------------------------------------------------- */}
+      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-8 sm:pt-6">
+        <div className="relative flex min-h-[18vh] flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br from-[#12301f] via-[#1b432c] to-[#0f281a] p-5 shadow-luxe sm:min-h-[20vh] sm:p-7 md:p-8">
+          <div className="pointer-events-none absolute -right-8 -top-8 size-52 rounded-full bg-gold/15 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-10 -left-10 size-48 rounded-full bg-forest-2/40 blur-2xl" />
+
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/15 px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-gold-soft sm:text-[0.68rem]">
+                <span>Official Rate Card • {products.length} Products</span>
+              </div>
+              <h1 className="font-display mt-2 text-2xl font-bold leading-tight text-paper sm:text-3xl md:text-4xl">
+                Wholesale & Retail Rate List
+              </h1>
+              <p className="mt-1 text-xs text-gold-soft/80 sm:text-sm">
+                Instant verified member pricing & bulk wholesale terms. Download official printable PDF below.
+              </p>
+            </div>
+
+            <div className="shrink-0 pt-1 sm:pt-0">
+              <DownloadRateListButton
+                categories={categories}
+                products={products}
+                activeCategoryId={active}
+                variant="hero"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* -------------------------------------------------------------
+          MINIMAL TOP BAR (Sticky, minimal, mobile dropdown by default)
+          ------------------------------------------------------------- */}
+      <div className="sticky top-0 z-20 mt-4 border-b border-line/80 bg-ivory/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2.5 px-4 py-2 sm:px-8 sm:py-2.5">
+          {/* Mobile Category Dropdown (Minimized by default) */}
+          <div className="relative md:hidden">
+            <label className="sr-only" htmlFor="category-select-mobile">
+              Category
+            </label>
+            <select
+              id="category-select-mobile"
+              value={active}
+              onChange={(e) => selectCategory(e.target.value)}
+              className="appearance-none rounded-full border border-line bg-paper py-2 pl-3.5 pr-8 text-xs font-bold text-forest shadow-2xs outline-none focus:border-gold"
+            >
+              <option value="all">All Categories ({products.length})</option>
+              {sections.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.products.length})
+                </option>
+              ))}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </div>
+
+          {/* Desktop Category Navigation Tabs */}
+          <nav className="no-scrollbar hidden items-center gap-1 overflow-x-auto md:flex" aria-label="Categories">
             <Tab label="All" count={products.length} active={active === "all"} onClick={() => selectCategory("all")} />
             {sections.map((s) => (
               <Tab
@@ -63,16 +127,17 @@ export function Catalog({ categories, products, error }: Props) {
             ))}
           </nav>
 
-          <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+          {/* Right Toolbar: Compact Search & View Mode Toggle */}
+          <div className="flex items-center gap-2">
             {/* Search Input */}
-            <label className="relative block flex-1 sm:w-60 md:w-64">
+            <label className="relative block w-36 sm:w-56 md:w-64">
               <span className="sr-only">Search products</span>
               <svg
                 viewBox="0 0 24 24"
-                className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted"
+                className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={1.8}
+                strokeWidth={2}
                 aria-hidden
               >
                 <circle cx="11" cy="11" r="7" />
@@ -83,39 +148,35 @@ export function Catalog({ categories, products, error }: Props) {
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
-                  setActive("all"); // search across every category
+                  setActive("all");
                 }}
-                placeholder="Search products…"
-                className="w-full rounded-full border border-line bg-paper py-2.5 pl-11 pr-4 text-base outline-none transition placeholder:text-muted/80 focus:border-gold focus:ring-4 focus:ring-gold/10 sm:py-2 sm:text-xs"
+                placeholder="Search…"
+                className="w-full rounded-full border border-line bg-paper py-1.5 pl-8 pr-3 text-xs outline-none transition placeholder:text-muted/70 focus:border-gold sm:py-2 sm:pl-9 sm:text-xs"
               />
             </label>
 
-            {/* View Mode Toggle (Table Form by Default vs Photos) */}
-            <div className="inline-flex rounded-full border border-line bg-paper/90 p-1 shadow-2xs">
+            {/* View Mode Toggle: Table (Default) vs Photos */}
+            <div className="inline-flex rounded-full border border-line bg-paper p-0.5 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setViewMode("table")}
-                title="Table Rate View (Simple & Easy)"
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  viewMode === "table"
-                    ? "bg-forest text-paper shadow-xs"
-                    : "text-muted hover:text-ink"
+                title="Table Format (Default)"
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold transition sm:px-3 sm:py-1.5 ${
+                  viewMode === "table" ? "bg-forest text-paper" : "text-muted hover:text-ink"
                 }`}
               >
                 <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M3 3h18v18H3z" />
                   <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
                 </svg>
-                <span>Table</span>
+                <span className="hidden sm:inline">Table</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode("photo")}
-                title="Photo Card View"
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  viewMode === "photo"
-                    ? "bg-forest text-paper shadow-xs"
-                    : "text-muted hover:text-ink"
+                title="Photo View"
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold transition sm:px-3 sm:py-1.5 ${
+                  viewMode === "photo" ? "bg-forest text-paper" : "text-muted hover:text-ink"
                 }`}
               >
                 <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -123,25 +184,21 @@ export function Catalog({ categories, products, error }: Props) {
                   <circle cx="9" cy="9" r="2" />
                   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                 </svg>
-                <span>Photos</span>
+                <span className="hidden sm:inline">Photos</span>
               </button>
             </div>
-
-            {/* Download Rate List PDF */}
-            <DownloadRateListButton
-              categories={categories}
-              products={products}
-              activeCategoryId={active}
-            />
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-5 pb-10 sm:px-8">
+      {/* -------------------------------------------------------------
+          PRODUCT GRID LISTINGS
+          ------------------------------------------------------------- */}
+      <div className="mx-auto max-w-7xl px-4 pb-12 sm:px-8">
         {q && (
-          <p className="pt-6 text-sm text-muted sm:pt-8">
+          <p className="pt-5 text-sm text-muted">
             {resultCount} {resultCount === 1 ? "result" : "results"} for{" "}
-            <span className="font-medium text-ink">“{query.trim()}”</span>
+            <span className="font-semibold text-ink">“{query.trim()}”</span>
           </p>
         )}
 
@@ -150,27 +207,25 @@ export function Catalog({ categories, products, error }: Props) {
           const hidden = section.products.length - shown.length;
 
           return (
-            <section key={section.id} className="pt-9 sm:pt-16" aria-labelledby={`cat-${section.id}`}>
-              <div className="mb-5 flex items-end justify-between gap-4 border-b border-line pb-3 sm:mb-7 sm:pb-4">
+            <section key={section.id} className="pt-8 sm:pt-12" aria-labelledby={`cat-${section.id}`}>
+              <div className="mb-4 flex items-end justify-between border-b border-line pb-2.5 sm:mb-6 sm:pb-3">
                 <div>
-                  <span className="eyebrow text-gold">Collection</span>
-                  <h2 id={`cat-${section.id}`} className="font-display mt-1 text-3xl font-semibold text-forest sm:text-4xl">
+                  <span className="eyebrow text-gold">Category</span>
+                  <h2 id={`cat-${section.id}`} className="font-display mt-0.5 text-2xl font-bold text-forest sm:text-3xl">
                     {section.name}
                   </h2>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="pb-1 text-sm text-muted">
-                    {section.products.length} {section.products.length === 1 ? "product" : "products"}
-                  </span>
-                </div>
+                <span className="text-xs font-medium text-muted">
+                  {section.products.length} {section.products.length === 1 ? "item" : "items"}
+                </span>
               </div>
 
-              {/* Responsive 2-column grid for table cards, or 4-column grid for photo cards */}
+              {/* 2-Grid for Table View on All Devices, or 4-Grid for Photos */}
               <div
                 className={
                   viewMode === "table"
-                    ? "grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-2 sm:gap-4.5"
-                    : "grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6"
+                    ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 sm:gap-4"
+                    : "grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5"
                 }
               >
                 {shown.map((p) => (
@@ -179,16 +234,14 @@ export function Catalog({ categories, products, error }: Props) {
               </div>
 
               {hidden > 0 && (
-                <div className="mt-6 sm:mt-10 sm:flex sm:justify-center">
+                <div className="mt-6 flex justify-center sm:mt-8">
                   <button
                     type="button"
                     onClick={() => selectCategory(section.id)}
-                    className="group flex w-full items-center justify-center gap-3 rounded-full bg-forest px-8 py-[1.15rem] text-paper shadow-luxe transition hover:bg-forest-2 active:scale-[0.98] sm:w-auto sm:min-w-[26rem] sm:py-5"
+                    className="group inline-flex items-center gap-2.5 rounded-full bg-forest px-6 py-3 text-xs font-bold uppercase tracking-wider text-paper shadow-sm transition hover:bg-forest-2 active:scale-98"
                   >
-                    <span className="text-sm font-semibold uppercase tracking-[0.16em] sm:text-[0.95rem]">
-                      View all {section.name}
-                    </span>
-                    <span className="rounded-full bg-gold px-2.5 py-0.5 text-xs font-bold text-paper">
+                    <span>View all {section.name}</span>
+                    <span className="rounded-full bg-gold px-2 py-0.5 text-[0.68rem] font-bold text-paper">
                       {section.products.length}
                     </span>
                     <ArrowIcon />
@@ -200,12 +253,12 @@ export function Catalog({ categories, products, error }: Props) {
         })}
 
         {visible.length === 0 && (
-          <div className="py-28 text-center">
-            <p className="font-display text-3xl text-forest">
-              {error ? "Catalogue unavailable" : q ? "No products found" : "Catalogue coming soon"}
+          <div className="py-24 text-center">
+            <p className="font-display text-2xl font-bold text-forest">
+              {error ? "Catalogue unavailable" : q ? "No products match" : "Coming soon"}
             </p>
-            <p className="mt-2 text-sm text-muted">
-              {error ? "Please check back shortly." : q ? "Try a different name or browse all categories." : "Products will appear here shortly."}
+            <p className="mt-1 text-sm text-muted">
+              {error ? "Please check back shortly." : "Try adjusting your search terms."}
             </p>
             {q && (
               <button
@@ -213,7 +266,7 @@ export function Catalog({ categories, products, error }: Props) {
                   setQuery("");
                   setActive("all");
                 }}
-                className="eyebrow mt-6 rounded-full border border-forest px-5 py-2.5 text-forest transition hover:bg-forest hover:text-paper"
+                className="mt-4 rounded-full border border-forest px-4 py-2 text-xs font-bold uppercase tracking-wider text-forest transition hover:bg-forest hover:text-paper"
               >
                 Clear search
               </button>
@@ -230,14 +283,14 @@ function Tab({ label, count, active, onClick }: { label: string; count: number; 
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`relative shrink-0 whitespace-nowrap px-3.5 py-3 text-sm transition md:px-4 md:py-5 ${
-        active ? "font-semibold text-forest" : "text-muted hover:text-ink"
+      className={`relative shrink-0 whitespace-nowrap px-3.5 py-2 text-xs font-bold transition md:px-4 ${
+        active ? "text-forest" : "text-muted hover:text-ink"
       }`}
     >
       {label}
-      <span className={`ml-1.5 text-xs ${active ? "text-gold" : "text-muted/70"}`}>{count}</span>
+      <span className={`ml-1 text-[0.68rem] ${active ? "text-gold" : "text-muted/60"}`}>{count}</span>
       <span
-        className={`absolute inset-x-3.5 bottom-0 h-[2px] rounded-full bg-gold transition-transform duration-300 md:inset-x-4 ${
+        className={`absolute inset-x-3.5 bottom-0 h-[2px] rounded-full bg-gold transition-transform duration-200 md:inset-x-4 ${
           active ? "scale-x-100" : "scale-x-0"
         }`}
       />
@@ -247,14 +300,7 @@ function Tab({ label, count, active, onClick }: { label: string; count: number; 
 
 function ArrowIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="size-4 transition-transform duration-300 group-hover:translate-x-1"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      aria-hidden
-    >
+    <svg viewBox="0 0 24 24" className="size-3.5 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth={2.5}>
       <path d="M5 12h14m-5-5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

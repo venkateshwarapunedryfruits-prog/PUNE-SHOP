@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Cormorant_Garamond, Outfit, Manrope } from "next/font/google";
 import { site } from "@/lib/site";
 import "./globals.css";
+
+const outfit = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -21,8 +27,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${manrope.variable} h-full`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${outfit.variable} ${cormorant.variable} ${manrope.variable} h-full`}>
+      <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
 }

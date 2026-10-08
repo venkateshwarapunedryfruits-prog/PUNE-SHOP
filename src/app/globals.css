@@ -13,8 +13,9 @@
   --color-gold-soft: #f1e7d3;
   --color-rose: #a3412e;
 
-  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
-  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-outfit), var(--font-cormorant), system-ui, sans-serif;
+  --font-sans: var(--font-outfit), var(--font-manrope), system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), Georgia, serif;
 
   --shadow-luxe: 0 1px 2px rgb(29 27 22 / 0.04), 0 18px 40px -18px rgb(29 27 22 / 0.18);
 }
