@@ -17,6 +17,7 @@ const PREVIEW_COUNT = 4;
 export function Catalog({ categories, products, error }: Props) {
   const [active, setActive] = useState<string>("all");
   const [query, setQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"table" | "photo">("table");
   const topRef = useRef<HTMLDivElement>(null);
 
   // Switching category while scrolled down the page jumps back to the top of the catalogue.
@@ -46,9 +47,9 @@ export function Catalog({ categories, products, error }: Props) {
 
   return (
     <div ref={topRef}>
-      {/* Toolbar: categories + search */}
+      {/* Toolbar: categories + search + view toggle + PDF download */}
       <div className="sticky top-0 z-20 border-b border-line bg-ivory/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 pb-3 pt-1 sm:px-8 md:flex-row md:items-center md:justify-between md:py-0">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2.5 px-5 pb-3 pt-1.5 sm:px-8 md:flex-row md:items-center md:justify-between md:py-0">
           <nav className="no-scrollbar -mx-5 flex overflow-x-auto px-1.5 sm:-mx-8 sm:px-4.5 md:mx-0 md:gap-1 md:px-0" aria-label="Categories">
             <Tab label="All" count={products.length} active={active === "all"} onClick={() => selectCategory("all")} />
             {sections.map((s) => (
@@ -62,8 +63,9 @@ export function Catalog({ categories, products, error }: Props) {
             ))}
           </nav>
 
-          <div className="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
-            <label className="relative block flex-1 md:w-72">
+          <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+            {/* Search Input */}
+            <label className="relative block flex-1 sm:w-60 md:w-64">
               <span className="sr-only">Search products</span>
               <svg
                 viewBox="0 0 24 24"
@@ -84,10 +86,48 @@ export function Catalog({ categories, products, error }: Props) {
                   setActive("all"); // search across every category
                 }}
                 placeholder="Search products…"
-                className="w-full rounded-full border border-line bg-paper py-2.5 pl-11 pr-4 text-base outline-none transition placeholder:text-muted/80 focus:border-gold focus:ring-4 focus:ring-gold/10 sm:py-2.5 sm:text-sm"
+                className="w-full rounded-full border border-line bg-paper py-2.5 pl-11 pr-4 text-base outline-none transition placeholder:text-muted/80 focus:border-gold focus:ring-4 focus:ring-gold/10 sm:py-2 sm:text-xs"
               />
             </label>
 
+            {/* View Mode Toggle (Table Form by Default vs Photos) */}
+            <div className="inline-flex rounded-full border border-line bg-paper/90 p-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                title="Table Rate View (Simple & Easy)"
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "table"
+                    ? "bg-forest text-paper shadow-xs"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M3 3h18v18H3z" />
+                  <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+                </svg>
+                <span>Table</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("photo")}
+                title="Photo Card View"
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "photo"
+                    ? "bg-forest text-paper shadow-xs"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+                <span>Photos</span>
+              </button>
+            </div>
+
+            {/* Download Rate List PDF */}
             <DownloadRateListButton
               categories={categories}
               products={products}
@@ -118,14 +158,23 @@ export function Catalog({ categories, products, error }: Props) {
                     {section.name}
                   </h2>
                 </div>
-                <span className="pb-1 text-sm text-muted">
-                  {section.products.length} {section.products.length === 1 ? "product" : "products"}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="pb-1 text-sm text-muted">
+                    {section.products.length} {section.products.length === 1 ? "product" : "products"}
+                  </span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+              {/* Responsive 2-column grid for table cards, or 4-column grid for photo cards */}
+              <div
+                className={
+                  viewMode === "table"
+                    ? "grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-2 sm:gap-4.5"
+                    : "grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6"
+                }
+              >
                 {shown.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard key={p.id} product={p} viewMode={viewMode} />
                 ))}
               </div>
 

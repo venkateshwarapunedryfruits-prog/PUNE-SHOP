@@ -1,5 +1,5 @@
 import { site } from "./site";
-import { formatPrice, type Category, type Product } from "./types";
+import type { Category, Product } from "./types";
 
 declare global {
   interface Window {
@@ -7,6 +7,14 @@ declare global {
       jsPDF: new (options?: { orientation?: "p" | "portrait" | "l" | "landscape"; unit?: "pt" | "mm" | "in" | "px"; format?: string | number[] }) => any;
     };
   }
+}
+
+/** Formats currency strictly using ASCII "Rs." so standard PDF Helvetica never hides or clips digits. */
+function pdfPrice(value: number | string | null | undefined): string {
+  if (value == null) return "—";
+  const num = Number(value);
+  if (Number.isNaN(num)) return "—";
+  return `Rs. ${num.toLocaleString("en-IN")}`;
 }
 
 /** Loads an external script dynamically. */
@@ -46,14 +54,13 @@ export type ExportRateListOptions = {
 
 /**
  * Downloads the Rate List as a clean, branded PDF file.
- * Falls back to a clean printable print-to-PDF window if external scripts fail.
+ * Formats all numbers clearly with zero truncation.
  */
 export async function downloadRateListPdf({
   categories,
   products,
   selectedCategoryId,
 }: ExportRateListOptions): Promise<void> {
-  // Filter products according to category selection
   const relevantCategories =
     selectedCategoryId && selectedCategoryId !== "all"
       ? categories.filter((c) => c.id === selectedCategoryId)
@@ -75,80 +82,82 @@ export async function downloadRateListPdf({
     const jsPDFConstructor = await loadJsPdfAndAutoTable();
     const doc = new jsPDFConstructor({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+    const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+    const margin = 12; // 12mm margins each side -> 186mm table width
     const today = new Date().toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
 
-    // --- Header ---
+    // --- Header Banner ---
     doc.setFillColor(18, 48, 31); // Forest Green #12301f
     doc.rect(0, 0, pageWidth, 28, "F");
 
     // Gold accent stripe
     doc.setFillColor(169, 132, 74); // Gold #a9844a
-    doc.rect(0, 28, pageWidth, 2, "F");
+    doc.rect(0, 28, pageWidth, 2.5, "F");
 
+    // Title & Tagline
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text(site.name.toUpperCase(), 14, 11);
+    doc.text(site.name.toUpperCase(), margin, 11);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
     doc.setTextColor(241, 231, 211); // soft gold
-    doc.text(site.tagline, 14, 17);
-    doc.text(`${site.address}  |  Tel: ${site.phone}`, 14, 23);
+    doc.text(site.tagline, margin, 17);
+    doc.text(`${site.address}  |  Tel: ${site.phone}`, margin, 23);
 
     // Right-aligned header badge
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
-    doc.text("RATE LIST", pageWidth - 14, 12, { align: "right" });
+    doc.text("OFFICIAL RATE LIST", pageWidth - margin, 12, { align: "right" });
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text(`Updated: ${today}`, pageWidth - 14, 18, { align: "right" });
+    doc.text(`Updated: ${today}`, pageWidth - margin, 18, { align: "right" });
 
     let currentY = 36;
 
     // --- Category Sections & Tables ---
     sections.forEach((section) => {
-      // Check if near bottom of page
-      if (currentY > pageHeight - 40) {
+      // Check if page needs break before category header
+      if (currentY > pageHeight - 45) {
         doc.addPage();
         currentY = 16;
       }
 
-      // Category Section Title
-      doc.setFillColor(241, 231, 211); // Light gold accent block
-      doc.roundedRect(14, currentY, pageWidth - 28, 7.5, 1.5, 1.5, "F");
+      // Category Section Title Banner
+      doc.setFillColor(241, 231, 211); // Light gold
+      doc.roundedRect(margin, currentY, pageWidth - margin * 2, 8, 1.5, 1.5, "F");
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(18, 48, 31);
-      doc.text(section.name.toUpperCase(), 17, currentY + 5.2);
+      doc.text(section.name.toUpperCase(), margin + 3, currentY + 5.5);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(123, 115, 102);
-      doc.text(`${section.products.length} products`, pageWidth - 17, currentY + 5.2, { align: "right" });
+      doc.text(`${section.products.length} Items`, pageWidth - margin - 3, currentY + 5.5, { align: "right" });
 
-      currentY += 9;
+      currentY += 10;
 
-      // Table Data
+      // Clean ASCII Table Data (Never clips numbers)
       const tableBody = section.products.map((p, idx) => {
         const wholesaleStr =
-          p.wholesale_enabled && p.wholesale_price != null ? formatPrice(p.wholesale_price) : "—";
+          p.wholesale_enabled && p.wholesale_price != null ? pdfPrice(p.wholesale_price) : "—";
         const minQtyStr =
-          p.wholesale_enabled && p.wholesale_min_qty != null ? `${p.wholesale_min_qty} pcs` : "—";
+          p.wholesale_enabled && p.wholesale_min_qty != null ? `${p.wholesale_min_qty} pcs` : "Single";
 
         return [
           String(idx + 1),
           p.name,
-          formatPrice(p.mrp),
-          formatPrice(p.member_price),
+          pdfPrice(p.mrp),
+          pdfPrice(p.member_price),
           wholesaleStr,
           minQtyStr,
         ];
@@ -156,54 +165,55 @@ export async function downloadRateListPdf({
 
       (doc as any).autoTable({
         startY: currentY,
-        margin: { left: 14, right: 14 },
-        head: [["#", "Product Name", "MRP", "Member Price", "Wholesale Rate", "Min Qty"]],
+        margin: { left: margin, right: margin },
+        head: [["#", "Product Name / Fragrance", "MRP", "Member Rate", "Wholesale Rate", "Min Qty"]],
         body: tableBody,
         theme: "grid",
         styles: {
+          font: "helvetica",
           fontSize: 8.5,
-          cellPadding: 2.2,
-          lineColor: [229, 220, 203], // #e5dccb
+          cellPadding: 2.8,
+          lineColor: [225, 218, 203],
           lineWidth: 0.2,
           textColor: [29, 27, 22],
+          overflow: "linebreak",
         },
         headStyles: {
           fillColor: [18, 48, 31],
           textColor: [255, 255, 255],
           fontStyle: "bold",
           fontSize: 8.5,
-          halign: "left",
+          cellPadding: 3,
         },
         alternateRowStyles: {
-          fillColor: [251, 248, 241],
+          fillColor: [250, 247, 240],
         },
         columnStyles: {
           0: { cellWidth: 8, halign: "center", fontStyle: "bold" },
-          1: { cellWidth: "auto", fontStyle: "bold" },
-          2: { cellWidth: 24, halign: "right", textColor: [123, 115, 102] },
-          3: { cellWidth: 28, halign: "right", fontStyle: "bold", textColor: [18, 48, 31] },
-          4: { cellWidth: 28, halign: "right", fontStyle: "bold", textColor: [138, 106, 54] },
-          5: { cellWidth: 22, halign: "center", textColor: [123, 115, 102] },
+          1: { cellWidth: 80, fontStyle: "bold" }, // Generous width for product names
+          2: { cellWidth: 24, halign: "right", textColor: [120, 110, 100] },
+          3: { cellWidth: 25, halign: "right", fontStyle: "bold", textColor: [18, 48, 31] },
+          4: { cellWidth: 26, halign: "right", fontStyle: "bold", textColor: [138, 106, 54] },
+          5: { cellWidth: 23, halign: "center", textColor: [90, 85, 80] },
         },
         didDrawPage: (data: any) => {
-          // Footer on each page
-          const str = `Page ${data.pageNumber}`;
+          // Bottom Footer
           doc.setFont("helvetica", "normal");
           doc.setFontSize(7.5);
-          doc.setTextColor(150, 150, 150);
+          doc.setTextColor(140, 140, 140);
           doc.text(
-            `${site.legalName} • Subject to change without prior notice`,
-            14,
+            `${site.legalName} • Rates subject to change without notice`,
+            margin,
             pageHeight - 6,
           );
-          doc.text(str, pageWidth - 14, pageHeight - 6, { align: "right" });
+          doc.text(`Page ${data.pageNumber}`, pageWidth - margin, pageHeight - 6, { align: "right" });
         },
       });
 
       currentY = (doc as any).lastAutoTable.finalY + 8;
     });
 
-    // Save File
+    // Save PDF
     const filename = `${site.name.toLowerCase().replace(/\s+/g, "-")}-rate-list-${today.replace(/\s+/g, "-")}.pdf`;
     doc.save(filename);
   } catch (error) {
@@ -212,7 +222,7 @@ export async function downloadRateListPdf({
   }
 }
 
-/** Fallback printable rate sheet view in case CDN scripts are blocked. */
+/** Fallback printable rate sheet view with crystal clear layout. */
 export function printRateSheetFallback({
   categories,
   products,
@@ -249,28 +259,28 @@ export function printRateSheetFallback({
       <meta charset="utf-8" />
       <title>${site.name} — Rate List (${today})</title>
       <style>
-        @page { size: A4 portrait; margin: 12mm 15mm; }
+        @page { size: A4 portrait; margin: 12mm 14mm; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; color: #1d1b16; background: #fff; line-height: 1.4; padding: 10px; }
-        .header { border-bottom: 2px solid #a9844a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .title { font-size: 24px; font-weight: 700; color: #12301f; text-transform: uppercase; }
+        body { font-family: system-ui, -apple-system, sans-serif; color: #1d1b16; background: #fff; line-height: 1.4; padding: 12px; }
+        .header { border-bottom: 3px solid #a9844a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .title { font-size: 24px; font-weight: 800; color: #12301f; text-transform: uppercase; }
         .tagline { font-size: 11px; color: #a9844a; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
         .contact { font-size: 11px; color: #7b7366; margin-top: 4px; }
         .meta { text-align: right; font-size: 11px; color: #7b7366; }
         .badge { display: inline-block; background: #12301f; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; margin-bottom: 4px; }
         .category-block { margin-bottom: 22px; page-break-inside: avoid; }
-        .cat-title { background: #f6f1e7; color: #12301f; font-size: 13px; font-weight: 700; padding: 6px 10px; border-left: 4px solid #a9844a; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .cat-title { background: #f6f1e7; color: #12301f; font-size: 13px; font-weight: 700; padding: 6px 12px; border-left: 4px solid #a9844a; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { background: #12301f; color: #fff; font-weight: 600; text-align: left; padding: 6px 8px; font-size: 11px; }
-        td { padding: 6px 8px; border-bottom: 1px solid #e5dccb; }
+        th { background: #12301f; color: #fff; font-weight: 600; text-align: left; padding: 7px 10px; font-size: 11px; }
+        td { padding: 7px 10px; border-bottom: 1px solid #e5dccb; }
         tr:nth-child(even) { background: #faf8f5; }
-        .num { width: 24px; text-align: center; font-weight: 600; }
-        .name { font-weight: 600; color: #12301f; }
-        .mrp { text-align: right; color: #7b7366; text-decoration: line-through; }
-        .member { text-align: right; font-weight: 700; color: #12301f; }
-        .wholesale { text-align: right; font-weight: 700; color: #8a6a36; }
-        .qty { text-align: center; color: #7b7366; }
-        .footer { margin-top: 30px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
+        .num { width: 28px; text-align: center; font-weight: 600; }
+        .name { font-weight: 600; color: #12301f; max-width: 250px; }
+        .mrp { text-align: right; color: #7b7366; text-decoration: line-through; white-space: nowrap; }
+        .member { text-align: right; font-weight: 700; color: #12301f; white-space: nowrap; }
+        .wholesale { text-align: right; font-weight: 700; color: #8a6a36; white-space: nowrap; }
+        .qty { text-align: center; color: #7b7366; white-space: nowrap; }
+        .footer { margin-top: 30px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }
         @media print {
           body { padding: 0; }
           .no-print { display: none; }
@@ -299,12 +309,15 @@ export function printRateSheetFallback({
         .map(
           (s) => `
         <div class="category-block">
-          <div class="cat-title">${s.name} (${s.products.length} Items)</div>
+          <div class="cat-title">
+            <span>${s.name}</span>
+            <span style="font-size: 10px; font-weight: normal; color: #7b7366;">${s.products.length} Products</span>
+          </div>
           <table>
             <thead>
               <tr>
                 <th class="num">#</th>
-                <th>Product Name</th>
+                <th>Product Name / Fragrance</th>
                 <th style="text-align: right;">MRP</th>
                 <th style="text-align: right;">Member Price</th>
                 <th style="text-align: right;">Wholesale Rate</th>
@@ -318,10 +331,10 @@ export function printRateSheetFallback({
                 <tr>
                   <td class="num">${i + 1}</td>
                   <td class="name">${p.name}</td>
-                  <td class="mrp">${formatPrice(p.mrp)}</td>
-                  <td class="member">${formatPrice(p.member_price)}</td>
-                  <td class="wholesale">${p.wholesale_enabled && p.wholesale_price != null ? formatPrice(p.wholesale_price) : "—"}</td>
-                  <td class="qty">${p.wholesale_enabled && p.wholesale_min_qty != null ? p.wholesale_min_qty + " pcs" : "—"}</td>
+                  <td class="mrp">${pdfPrice(p.mrp)}</td>
+                  <td class="member">${pdfPrice(p.member_price)}</td>
+                  <td class="wholesale">${p.wholesale_enabled && p.wholesale_price != null ? pdfPrice(p.wholesale_price) : "—"}</td>
+                  <td class="qty">${p.wholesale_enabled && p.wholesale_min_qty != null ? p.wholesale_min_qty + " pcs" : "Single"}</td>
                 </tr>
               `,
                 )
