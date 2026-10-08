@@ -8,6 +8,8 @@ export type Product = {
   category_id: string;
   name: string;
   image_url: string | null;
+  images?: string[] | null;
+  is_image?: boolean;
   mrp: number;
   member_price: number;
   wholesale_enabled: boolean;

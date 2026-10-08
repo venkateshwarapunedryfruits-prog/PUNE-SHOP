@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Category, Product } from "@/lib/types";
 import { ProductCard } from "./ProductCard";
+import { DownloadRateListButton } from "./DownloadRateListButton";
 
 type Props = {
   categories: Category[];
@@ -61,30 +62,38 @@ export function Catalog({ categories, products, error }: Props) {
             ))}
           </nav>
 
-          <label className="relative block md:w-80">
-            <span className="sr-only">Search products</span>
-            <svg
-              viewBox="0 0 24 24"
-              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              aria-hidden
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" strokeLinecap="round" />
-            </svg>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setActive("all"); // search across every category
-              }}
-              placeholder="Search products…"
-              className="w-full rounded-full border border-line bg-paper py-3 pl-11 pr-4 text-base outline-none transition placeholder:text-muted/80 focus:border-gold focus:ring-4 focus:ring-gold/10 sm:py-2.5 sm:text-sm"
+          <div className="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
+            <label className="relative block flex-1 md:w-72">
+              <span className="sr-only">Search products</span>
+              <svg
+                viewBox="0 0 24 24"
+                className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                aria-hidden
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActive("all"); // search across every category
+                }}
+                placeholder="Search products…"
+                className="w-full rounded-full border border-line bg-paper py-2.5 pl-11 pr-4 text-base outline-none transition placeholder:text-muted/80 focus:border-gold focus:ring-4 focus:ring-gold/10 sm:py-2.5 sm:text-sm"
+              />
+            </label>
+
+            <DownloadRateListButton
+              categories={categories}
+              products={products}
+              activeCategoryId={active}
             />
-          </label>
+          </div>
         </div>
       </div>
 

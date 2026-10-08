@@ -121,8 +121,40 @@ export async function saveProduct(_: FormState, formData: FormData): Promise<For
   const minQtyRaw = String(formData.get("wholesale_min_qty") ?? "").trim();
   const wholesale_min_qty = minQtyRaw === "" ? null : Number(minQtyRaw);
   const is_available = formData.get("is_available") === "on";
-  const currentImage = String(formData.get("current_image_url") ?? "") || null;
-  const file = formData.get("image");
+  const is_image = formData.get("is_image") === "on";
+
+  // Parse existing retained images
+  const existingImagesRaw = String(formData.get("existing_images") ?? "").trim();
+  let retainedImages: string[] = [];
+  if (existingImagesRaw) {
+    try {
+      const parsed = JSON.parse(existingImagesRaw);
+      if (Array.isArray(parsed)) {
+        retainedImages = parsed.filter((u): u is string => typeof u === "string" && u.trim().length > 0);
+      }
+    } catch {
+      retainedImages = existingImagesRaw.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+  }
+
+  // Also support any newline/comma separated manual URLs added by admin
+  const manualUrlsRaw = String(formData.get("custom_image_urls") ?? "").trim();
+  if (manualUrlsRaw) {
+    const manualUrls = manualUrlsRaw
+      .split(/[\n,]+/)
+      .map((u) => u.trim())
+      .filter((u) => u.startsWith("http://") || u.startsWith("https://") || u.startsWith("/"));
+    retainedImages.push(...manualUrls);
+  }
+
+  const uploadedFiles: File[] = [];
+  const singleFile = formData.get("image");
+  if (singleFile instanceof File && singleFile.size > 0) uploadedFiles.push(singleFile);
+
+  const multiFiles = formData.getAll("new_images");
+  for (const f of multiFiles) {
+    if (f instanceof File && f.size > 0) uploadedFiles.push(f);
+  }
 
   if (!name) return { error: "Product name is required." };
   if (!category_id) return { error: "Choose a category." };
@@ -136,20 +168,24 @@ export async function saveProduct(_: FormState, formData: FormData): Promise<For
     return { error: "Wholesale is ON — enter the wholesale price and minimum quantity." };
   }
 
-  // Upload a new photo if one was picked
-  let image_url = currentImage;
-  if (file instanceof File && file.size > 0) {
-    if (!file.type.startsWith("image/")) return { error: "Please choose an image file." };
+  // Upload any new files to Supabase storage
+  const newlyUploadedUrls: string[] = [];
+  for (const file of uploadedFiles) {
+    if (!file.type.startsWith("image/")) continue;
     const ext = file.type === "image/webp" ? "webp" : (file.name.split(".").pop() ?? "jpg").toLowerCase();
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from(BUCKET)
       .upload(path, file, { contentType: file.type, cacheControl: "31536000" });
     if (upErr) return { error: `Image upload failed: ${upErr.message}` };
-    image_url = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    const publicUrl = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    newlyUploadedUrls.push(publicUrl);
   }
 
-  const row = {
+  const allImages = [...retainedImages, ...newlyUploadedUrls];
+  const primaryImageUrl = allImages.length > 0 ? allImages[0] : null;
+
+  const row: Record<string, any> = {
     name,
     category_id,
     mrp,
@@ -158,19 +194,26 @@ export async function saveProduct(_: FormState, formData: FormData): Promise<For
     wholesale_price,
     wholesale_min_qty,
     is_available,
-    image_url,
+    image_url: primaryImageUrl,
+    images: allImages,
+    is_image,
   };
 
-  const { error } = id
+  let { error } = id
     ? await supabase.from("products").update(row).eq("id", id)
     : await supabase.from("products").insert(row);
-  if (error) return { error: error.message };
 
-  // Clean up the replaced photo
-  if (image_url !== currentImage) {
-    const old = storagePath(currentImage);
-    if (old) await supabase.storage.from(BUCKET).remove([old]);
+  // Fallback in case user hasn't executed the DB migration SQL yet
+  if (error && error.message?.toLowerCase().includes("column")) {
+    delete row.images;
+    delete row.is_image;
+    const retry = id
+      ? await supabase.from("products").update(row).eq("id", id)
+      : await supabase.from("products").insert(row);
+    error = retry.error;
   }
+
+  if (error) return { error: error.message };
 
   refresh();
   redirect("/admin");
@@ -178,12 +221,23 @@ export async function saveProduct(_: FormState, formData: FormData): Promise<For
 
 export async function deleteProduct(id: string): Promise<FormState> {
   const supabase = await requireAdmin();
-  const { data: product } = await supabase.from("products").select("image_url").eq("id", id).single();
+  const { data: product } = await supabase.from("products").select("image_url, images").eq("id", id).single();
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) return { error: error.message };
 
-  const path = storagePath(product?.image_url ?? null);
-  if (path) await supabase.storage.from(BUCKET).remove([path]);
+  // Collect all storage image paths to remove
+  const urlsToClean: string[] = [];
+  if (product?.image_url) urlsToClean.push(product.image_url);
+  if (Array.isArray(product?.images)) {
+    urlsToClean.push(...product.images);
+  }
+
+  const paths = urlsToClean.map(storagePath).filter((p): p is string => Boolean(p));
+  if (paths.length > 0) {
+    const uniquePaths = Array.from(new Set(paths));
+    await supabase.storage.from(BUCKET).remove(uniquePaths);
+  }
+
   refresh();
   return { ok: true };
 }

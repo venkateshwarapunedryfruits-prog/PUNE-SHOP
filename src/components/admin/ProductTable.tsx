@@ -102,14 +102,44 @@ export function ProductTable({ categories, products }: { categories: Category[];
               >
                 {/* product */}
                 <div className="flex min-w-0 items-center gap-4">
-                  <div className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-line bg-white">
-                    {p.image_url && <Image src={p.image_url} alt="" fill sizes="56px" className="object-contain p-1" />}
+                  <div className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-white">
+                    {p.is_image !== false && (p.image_url || p.images?.[0]) ? (
+                      <>
+                        <Image
+                          src={p.image_url || (p.images && p.images[0]) || ""}
+                          alt=""
+                          fill
+                          sizes="56px"
+                          className="object-contain p-1"
+                        />
+                        {p.images && p.images.length > 1 && (
+                          <span className="absolute bottom-0 right-0 rounded-tl bg-forest px-1 text-[0.55rem] font-bold text-paper">
+                            {p.images.length}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="flex flex-col items-center justify-center text-center text-[0.6rem] font-bold uppercase tracking-wider text-gold-deep">
+                        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path d="M3 3h18v18H3z" />
+                          <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+                        </svg>
+                        Table
+                      </span>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className={`truncate font-semibold ${p.is_available ? "text-ink" : "text-muted line-through"}`}>
                       {p.name}
                     </p>
-                    <p className="text-xs text-muted">{categoryName[p.category_id]}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted">{categoryName[p.category_id]}</p>
+                      {p.is_image === false && (
+                        <span className="rounded bg-gold-soft px-1.5 py-0.2 text-[0.6rem] font-semibold text-gold-deep">
+                          Table Card
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

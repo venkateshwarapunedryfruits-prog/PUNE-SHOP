@@ -12,17 +12,35 @@ async function getCatalog(): Promise<{ categories: Category[]; products: Product
   if (!isSupabaseConfigured) return { categories: [], products: [], error: "Supabase is not configured yet." };
 
   const supabase = createPublicClient();
-  const [cats, prods] = await Promise.all([
-    supabase.from("categories").select("id, name").order("created_at"),
-    supabase
+  const catsPromise = supabase.from("categories").select("id, name").order("created_at");
+  
+  // Try selecting all fields including images array and is_image flag.
+  // If the database has not been migrated yet, gracefully fallback to legacy fields.
+  let products: Product[] = [];
+  let prodsError: string | undefined;
+
+  const prodsRes = await supabase
+    .from("products")
+    .select("id, category_id, name, image_url, images, is_image, mrp, member_price, wholesale_enabled, wholesale_price, wholesale_min_qty, is_available")
+    .eq("is_available", true)
+    .order("name");
+
+  if (prodsRes.error && prodsRes.error.message?.toLowerCase().includes("column")) {
+    const fallback = await supabase
       .from("products")
       .select("id, category_id, name, image_url, mrp, member_price, wholesale_enabled, wholesale_price, wholesale_min_qty, is_available")
       .eq("is_available", true)
-      .order("name"),
-  ]);
+      .order("name");
+    products = (fallback.data as unknown as Product[]) ?? [];
+    prodsError = fallback.error?.message;
+  } else {
+    products = (prodsRes.data as unknown as Product[]) ?? [];
+    prodsError = prodsRes.error?.message;
+  }
 
-  const error = cats.error?.message ?? prods.error?.message;
-  return { categories: cats.data ?? [], products: (prods.data as Product[]) ?? [], error };
+  const cats = await catsPromise;
+  const error = cats.error?.message ?? prodsError;
+  return { categories: cats.data ?? [], products, error };
 }
 
 export default async function Home() {
