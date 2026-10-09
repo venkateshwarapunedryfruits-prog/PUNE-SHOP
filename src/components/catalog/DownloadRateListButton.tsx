@@ -76,10 +76,10 @@ export function DownloadRateListButton({
 
         <span>
           {loading
-            ? "Generating PDF…"
+            ? "Generating PDF… • PDF तयार होत आहे…"
             : isFiltered && activeCategory
-              ? `Download ${activeCategory.name} PDF`
-              : "Download Rate List (PDF)"}
+              ? `Download ${activeCategory.name} PDF • दर यादी`
+              : "Download Rate List (PDF) • दर यादी डाउनलोड करा"}
         </span>
       </button>
     );

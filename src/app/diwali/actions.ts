@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { DIWALI_BOXES, validateIndianMobile, type OrderItemDetail } from "@/lib/diwali";
+import { site } from "@/lib/site";
 
 export type OrderFormState =
   | {
@@ -10,6 +11,8 @@ export type OrderFormState =
       error?: string;
       customerName?: string;
       customerPhone?: string;
+      pickupDate?: string;
+      pickupSlot?: string;
       totalPrice?: number;
       itemsSummary?: string;
     }
@@ -18,14 +21,20 @@ export type OrderFormState =
 export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): Promise<OrderFormState> {
   const customerName = String(formData.get("customer_name") ?? "").trim();
   const customerPhone = String(formData.get("customer_phone") ?? "").replace(/\D/g, "");
+  const pickupDate = String(formData.get("pickup_date") ?? "").trim();
+  const pickupSlot = String(formData.get("pickup_slot") ?? "Morning: 10:00 AM – 1:00 PM").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
   if (!customerName) {
-    return { error: "Please enter your full name." };
+    return { error: "Please enter your full name. / कृपया आपले पूर्ण नाव टाका." };
   }
 
   if (!validateIndianMobile(customerPhone)) {
-    return { error: "Please enter a valid 10-digit mobile number (e.g. 9876543210)." };
+    return { error: "Please enter a valid 10-digit mobile number. / कृपया योग्य १०-अंकी मोबाईल नंबर टाका." };
+  }
+
+  if (!pickupDate) {
+    return { error: "Please select a store pickup date. / कृपया दुकानातून माल घेण्याची तारीख निवडा." };
   }
 
   // Parse items from form
@@ -51,7 +60,7 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
   }
 
   if (items.length === 0) {
-    return { error: "Please select at least 1 Diwali gift box to order." };
+    return { error: "Please select at least 1 gift box to order. / कृपया किमान १ गिफ्ट बॉक्स निवडा." };
   }
 
   const boxTypeSummary = items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
@@ -65,9 +74,9 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
     unit_price: items[0].unitPrice,
     total_price: calculatedTotal,
     items_detail: items,
-    delivery_type: null,
-    address: null,
-    notes: notes || null,
+    delivery_type: `Store Pickup: ${pickupDate} (${pickupSlot})`,
+    address: site.address,
+    notes: [notes, `Pickup: ${pickupDate} [${pickupSlot}]`].filter(Boolean).join(" | "),
     status: "new",
   };
 
@@ -81,13 +90,14 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
 
     if (error) {
       console.warn("Could not insert to diwali_orders table (may need SQL migration):", error.message);
-      // Even if table doesn't exist yet, return success with generated UUID so user is never blocked!
       const fallbackId = crypto.randomUUID();
       return {
         ok: true,
         orderId: fallbackId,
         customerName,
         customerPhone,
+        pickupDate,
+        pickupSlot,
         totalPrice: calculatedTotal,
         itemsSummary,
       };
@@ -98,6 +108,8 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
       orderId: data.id,
       customerName,
       customerPhone,
+      pickupDate,
+      pickupSlot,
       totalPrice: calculatedTotal,
       itemsSummary,
     };
@@ -109,6 +121,8 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
       orderId: fallbackId,
       customerName,
       customerPhone,
+      pickupDate,
+      pickupSlot,
       totalPrice: calculatedTotal,
       itemsSummary,
     };

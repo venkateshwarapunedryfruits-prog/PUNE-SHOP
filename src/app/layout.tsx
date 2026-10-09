@@ -21,8 +21,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: `${site.name} — ${site.tagline}`,
-  description: `${site.tagline}: product catalogue and price list of ${site.legalName}`,
+  title: `${site.name} (${site.marathiName}) — ${site.tagline}`,
+  description: `${site.displayName}: Official Rate List & Diwali Gift Boxes (अधिकृत दर यादी आणि दिवाळी गिफ्ट बॉक्सेस), Pune.`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
+import Image from "next/image";
 import { placeDiwaliOrder } from "@/app/diwali/actions";
 import { DIWALI_BOXES, validateIndianMobile } from "@/lib/diwali";
-import { site } from "@/lib/site";
+import { site, mapDirectionsUrl } from "@/lib/site";
 import { formatPrice } from "@/lib/types";
 
 export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
@@ -20,6 +21,41 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
 
   const [phone, setPhone] = useState("");
   const isPhoneValid = validateIndianMobile(phone);
+
+  // Today string for date limits
+  const today = useMemo(() => new Date(), []);
+  const todayStr = useMemo(() => {
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [today]);
+
+  // Generate 7 quick pickup dates
+  const quickDates = useMemo(() => {
+    const list: { dateStr: string; displayLabel: string; subLabel: string }[] = [];
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const dayName = days[d.getDay()];
+      const monthName = months[d.getMonth()];
+      const dayNum = d.getDate();
+
+      list.push({
+        dateStr,
+        displayLabel: i === 0 ? "Today (आज)" : i === 1 ? "Tomorrow (उद्या)" : `${dayName}, ${dayNum} ${monthName}`,
+        subLabel: `${dayNum} ${monthName}`,
+      });
+    }
+    return list;
+  }, [today]);
+
+  const [selectedDate, setSelectedDate] = useState<string>(quickDates[0]?.dateStr ?? todayStr);
+  const [selectedSlot, setSelectedSlot] = useState<string>(site.pickupSlots[0]?.label ?? "Morning / सकाळ (10:00 AM – 1:00 PM)");
 
   function updateQty(id: string, delta: number) {
     setQuantities((prev) => ({
@@ -39,46 +75,72 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
   const whatsappNumber = site.phone.replace(/\D/g, "");
   const whatsappOrderMessage = state?.ok
     ? encodeURIComponent(
-        `*Diwali Gift Box Order Confirmation*\n` +
+        `*Diwali Gift Box Pre-Order Confirmation*\n` +
           `Order ID: #${state.orderId?.slice(0, 8).toUpperCase()}\n` +
           `Customer: ${state.customerName}\n` +
-          `Phone: ${state.customerPhone}\n\n` +
+          `Phone: ${state.customerPhone}\n` +
+          `*Store Pickup Date:* ${state.pickupDate}\n` +
+          `*Time Slot:* ${state.pickupSlot}\n\n` +
           `*Items:*\n${state.itemsSummary}\n\n` +
-          `*Total Amount:* ₹${state.totalPrice}\n\n` +
-          `Please confirm my order. Thank you!`
+          `*Total Amount:* ₹${state.totalPrice}\n` +
+          `*Store Address:* Shoppers Orbit, Pune\n\n` +
+          `Please confirm my festive box pre-order. Thank you!`
       )
     : "";
 
   if (state?.ok) {
     return (
       <div className="rounded-3xl border border-gold/40 bg-paper p-6 text-center shadow-luxe sm:p-10">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-forest text-gold">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-forest text-gold shadow-md">
           <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
 
-        <span className="eyebrow mt-4 inline-block text-gold-deep">Order Placed Successfully</span>
+        <span className="eyebrow mt-4 inline-block text-gold-deep">
+          Pre-Order Confirmed • प्री-ऑर्डर नोंदवली
+        </span>
         <h3 className="font-display mt-1 text-2xl font-bold text-forest sm:text-3xl">
-          Thank you, {state.customerName}!
+          Thank You, {state.customerName}!
         </h3>
-        <p className="mt-2 text-xs text-muted sm:text-sm">
+        <p className="mt-1 text-xs text-muted sm:text-sm">
           Order ID: <span className="font-mono font-bold text-ink">#{state.orderId?.slice(0, 8).toUpperCase()}</span>
         </p>
 
-        <div className="mx-auto my-6 max-w-md rounded-2xl border border-line bg-white/90 p-4 text-left shadow-2xs">
-          <p className="eyebrow text-muted">Order Summary</p>
+        {/* Pickup Highlight Box */}
+        <div className="mx-auto my-5 max-w-md rounded-2xl border border-gold/40 bg-gold-soft/50 p-4 text-left shadow-2xs">
+          <div className="flex items-center gap-2 text-xs font-bold text-forest">
+            <span className="text-base">📍</span>
+            <span>Store Pickup Details • दुकानातून घेण्याची वेळ:</span>
+          </div>
+          <div className="mt-2 space-y-1 text-xs sm:text-sm">
+            <p>
+              <strong className="text-ink">Date (तारीख):</strong>{" "}
+              <span className="font-bold text-forest">{state.pickupDate}</span>
+            </p>
+            <p>
+              <strong className="text-ink">Time Slot (वेळ):</strong>{" "}
+              <span className="font-semibold text-ink">{state.pickupSlot}</span>
+            </p>
+            <p className="text-[0.75rem] text-muted">
+              <strong>Location:</strong> {site.address}
+            </p>
+          </div>
+        </div>
+
+        <div className="mx-auto my-4 max-w-md rounded-2xl border border-line bg-white/90 p-4 text-left shadow-2xs">
+          <p className="eyebrow text-muted">Order Summary • एकूण तपशील</p>
           <pre className="mt-2 whitespace-pre-wrap font-sans text-xs text-ink sm:text-sm">
             {state.itemsSummary}
           </pre>
           <div className="mt-3 flex items-baseline justify-between border-t border-line pt-2">
-            <span className="font-bold text-ink">Total:</span>
-            <span className="text-lg font-extrabold text-forest">{formatPrice(state.totalPrice)}</span>
+            <span className="font-bold text-ink">Total Amount:</span>
+            <span className="text-xl font-extrabold text-forest">{formatPrice(state.totalPrice)}</span>
           </div>
         </div>
 
-        <p className="text-xs text-muted">
-          Our team at Venkateshwara Shop will prepare your gift boxes freshly with premium quality dry fruits.
+        <p className="mx-auto max-w-md text-xs text-muted">
+          Your boxes will be prepared fresh with top grade dry fruits and packed ready for pickup at Shoppers Orbit Pune.
         </p>
 
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -88,16 +150,17 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
             rel="noopener noreferrer"
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:bg-[#20ba5a] sm:w-auto"
           >
-            <WhatsAppIcon /> Send Order on WhatsApp
+            <WhatsAppIcon /> Send Order on WhatsApp (व्हॉट्सअ‍ॅपवर पाठवा)
           </a>
 
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="inline-flex w-full items-center justify-center rounded-full border border-line px-5 py-3 text-xs font-semibold text-muted transition hover:text-ink sm:w-auto"
+          <a
+            href={mapDirectionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center rounded-full border border-line px-5 py-3 text-xs font-semibold text-forest transition hover:border-gold sm:w-auto"
           >
-            Place Another Order
-          </button>
+            📍 View Store on Google Maps
+          </a>
         </div>
       </div>
     );
@@ -105,12 +168,24 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
 
   return (
     <form action={formAction} className="rounded-3xl border border-line/90 bg-paper p-5 shadow-luxe sm:p-8">
+      {/* -------------------------------------------------------------
+          STEP 1: SELECT BOX QUANTITIES
+          ------------------------------------------------------------- */}
       <div className="border-b border-line pb-4">
-        <span className="eyebrow text-gold-deep">Step 1 • Choose Box Quantities</span>
-        <h3 className="font-display mt-0.5 text-xl font-bold text-forest sm:text-2xl">
-          Select Your Gift Boxes
-        </h3>
-        <p className="text-xs text-muted">You can customize any quantity for each box variant.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="eyebrow text-gold-deep">Step 1 • बॉक्स निवडा</span>
+            <h3 className="font-display mt-0.5 text-xl font-bold text-forest sm:text-2xl">
+              Choose Box Quantities • बॉक्सची संख्या निवडा
+            </h3>
+          </div>
+          <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[0.68rem] font-bold text-gold-deep">
+            {totalBoxes} selected
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          All boxes are filled with premium grade Cashews, Almonds, Pistachios, Raisins & Walnuts.
+        </p>
       </div>
 
       {/* 4 Box Type Selectors */}
@@ -118,51 +193,68 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
         {DIWALI_BOXES.map((box) => {
           const qty = quantities[box.id] ?? 0;
           return (
-            <div key={box.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div key={box.id} className="flex flex-col gap-3.5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <input type="hidden" name={`qty_${box.id}`} value={qty} />
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-display text-base font-bold text-ink sm:text-lg">
-                    {box.name}
-                  </h4>
-                  {box.badge && (
-                    <span className="rounded-full bg-gold-soft px-2 py-0.2 text-[0.62rem] font-bold text-gold-deep">
-                      {box.badge}
-                    </span>
-                  )}
+              <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-line bg-white shadow-2xs sm:size-20">
+                  <Image
+                    src={box.image}
+                    alt={box.name}
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
+                  <span className="absolute bottom-0 inset-x-0 bg-forest/80 py-0.5 text-center text-[0.55rem] font-bold text-paper">
+                    {box.totalWeight}g
+                  </span>
                 </div>
 
-                <p className="mt-0.5 text-xs text-muted">{box.contents.join(" • ")}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h4 className="font-display text-base font-bold text-ink sm:text-lg">
+                      {box.shortTitle}
+                    </h4>
+                    {box.badge && (
+                      <span className="rounded-full bg-gold-soft px-2 py-0.5 text-[0.6rem] font-bold text-gold-deep">
+                        {box.badge}
+                      </span>
+                    )}
+                  </div>
 
-                <div className="mt-1 text-xs">
-                  <span className="font-bold text-forest sm:text-sm">{formatPrice(box.price)}</span>
-                  <span className="text-muted"> / box ({box.totalWeight}g dry fruits)</span>
+                  <p className="mt-0.5 text-xs text-muted line-clamp-1">
+                    {box.contents.join(" • ")}
+                  </p>
+
+                  <div className="mt-1 flex items-baseline gap-2 text-xs">
+                    <span className="font-extrabold text-forest sm:text-base">{formatPrice(box.price)}</span>
+                    <span className="text-muted text-[0.7rem]">per filled box (तयार भरलेला बॉक्स)</span>
+                  </div>
                 </div>
               </div>
 
               {/* Quantity Counter */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0">
                 <div className="flex items-center rounded-full border border-line bg-white p-1 shadow-2xs">
                   <button
                     type="button"
                     onClick={() => updateQty(box.id, -1)}
                     disabled={qty === 0}
-                    className="flex size-7 items-center justify-center rounded-full text-sm font-bold text-ink transition hover:bg-ivory disabled:opacity-30"
+                    className="flex size-8 items-center justify-center rounded-full text-base font-bold text-ink transition hover:bg-ivory disabled:opacity-30 cursor-pointer"
                   >
                     –
                   </button>
-                  <span className="w-8 text-center text-xs font-bold text-ink">{qty}</span>
+                  <span className="w-9 text-center text-xs font-bold text-ink">{qty}</span>
                   <button
                     type="button"
                     onClick={() => updateQty(box.id, 1)}
-                    className="flex size-7 items-center justify-center rounded-full bg-forest text-sm font-bold text-paper transition hover:bg-forest-2"
+                    className="flex size-8 items-center justify-center rounded-full bg-forest text-base font-bold text-paper transition hover:bg-forest-2 cursor-pointer"
                   >
                     +
                   </button>
                 </div>
 
-                <span className="w-18 text-right text-xs font-bold text-ink sm:text-sm">
+                <span className="w-20 text-right text-xs font-extrabold text-forest sm:text-sm">
                   {qty > 0 ? formatPrice(qty * box.price) : "₹0"}
                 </span>
               </div>
@@ -171,42 +263,125 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
         })}
       </div>
 
-      {/* Order Total Highlight */}
-      <div className="my-5 flex items-center justify-between rounded-2xl border border-gold/30 bg-gold-soft/50 p-4">
-        <div>
-          <p className="eyebrow text-gold-deep">Total Boxes</p>
-          <p className="text-sm font-bold text-ink">{totalBoxes} box{totalBoxes === 1 ? "" : "es"}</p>
+      {/* -------------------------------------------------------------
+          STEP 2: STORE PICKUP DATE & TIME
+          ------------------------------------------------------------- */}
+      <div className="mt-8 border-t border-line pt-6">
+        <div className="border-b border-line/60 pb-3">
+          <span className="eyebrow text-gold-deep">Step 2 • पिकअप तारीख व वेळ</span>
+          <h4 className="font-display text-lg font-bold text-forest sm:text-xl">
+            Select Store Pickup Date & Time • माल घेण्याची तारीख
+          </h4>
+          <p className="text-xs text-muted">
+            Pick up your freshly packed gift boxes directly from our store at Shoppers Orbit, Pune.
+          </p>
         </div>
-        <div className="text-right">
-          <p className="eyebrow text-gold-deep">Grand Total</p>
-          <p className="text-xl font-extrabold text-forest sm:text-2xl">{formatPrice(totalPrice)}</p>
+
+        {/* Quick Date Buttons */}
+        <div className="mt-4">
+          <label className="eyebrow mb-2 block text-muted">
+            Choose Pickup Date (तारीख निवडा) *
+          </label>
+
+          <input type="hidden" name="pickup_date" value={selectedDate} />
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-4">
+            {quickDates.map((item) => {
+              const isSelected = selectedDate === item.dateStr;
+              return (
+                <button
+                  key={item.dateStr}
+                  type="button"
+                  onClick={() => setSelectedDate(item.dateStr)}
+                  className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition cursor-pointer ${
+                    isSelected
+                      ? "border-forest bg-forest text-paper shadow-sm"
+                      : "border-line bg-white text-ink hover:border-gold hover:bg-ivory/50"
+                  }`}
+                >
+                  <span className="text-xs font-bold">{item.displayLabel}</span>
+                  <span className={`text-[0.65rem] ${isSelected ? "text-gold-soft" : "text-muted"}`}>
+                    {item.dateStr}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom Date Input for other dates */}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs text-muted">Or pick another date (इतर तारीख):</span>
+            <input
+              type="date"
+              min={todayStr}
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink outline-none focus:border-gold"
+            />
+          </div>
+        </div>
+
+        {/* Time Slots */}
+        <div className="mt-5">
+          <label className="eyebrow mb-2 block text-muted">
+            Select Pickup Time Slot (वेळ निवडा) *
+          </label>
+          <input type="hidden" name="pickup_slot" value={selectedSlot} />
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {site.pickupSlots.map((slot) => {
+              const isSelected = selectedSlot === slot.label;
+              return (
+                <button
+                  key={slot.id}
+                  type="button"
+                  onClick={() => setSelectedSlot(slot.label)}
+                  className={`flex items-center gap-2.5 rounded-xl border p-3 text-left transition cursor-pointer ${
+                    isSelected
+                      ? "border-forest bg-forest/10 ring-2 ring-forest text-forest font-bold"
+                      : "border-line bg-white text-ink hover:border-gold"
+                  }`}
+                >
+                  <span className="text-base">{slot.id.includes("morning") ? "🌅" : slot.id.includes("afternoon") ? "☀️" : "🌙"}</span>
+                  <div className="text-xs">
+                    <p className="font-bold">{slot.label}</p>
+                    <p className="text-[0.65rem] text-muted">Store open 10am - 9pm</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Customer Contact Details */}
-      <div className="mt-6 space-y-4 border-t border-line pt-5">
+      {/* -------------------------------------------------------------
+          STEP 3: CUSTOMER CONTACT DETAILS
+          ------------------------------------------------------------- */}
+      <div className="mt-8 border-t border-line pt-6">
         <div className="border-b border-line/60 pb-3">
-          <span className="eyebrow text-gold-deep">Step 2 • Customer Information</span>
-          <h4 className="font-display text-lg font-bold text-forest">Your Contact Details</h4>
+          <span className="eyebrow text-gold-deep">Step 3 • तुमची माहिती</span>
+          <h4 className="font-display text-lg font-bold text-forest sm:text-xl">
+            Customer Information • ग्राहकाची माहिती
+          </h4>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label className="eyebrow mb-1.5 block text-muted" htmlFor="customer_name">
-              Full Name *
+              Full Name (पूर्ण नाव) *
             </label>
             <input
               id="customer_name"
               name="customer_name"
               required
-              placeholder="e.g. Ramesh Kulkarni"
+              placeholder="e.g. Ramesh Kulkarni / रमेश कुलकर्णी"
               className="field"
             />
           </div>
 
           <div>
             <label className="eyebrow mb-1.5 flex items-center justify-between text-muted" htmlFor="customer_phone">
-              <span>Mobile Number (10 Digits) *</span>
+              <span>Mobile Number (मोबाईल नंबर) *</span>
               {phone && (
                 <span className={`text-[0.65rem] font-bold ${isPhoneValid ? "text-forest" : "text-rose"}`}>
                   {isPhoneValid ? "✓ Valid Number" : "10 Digits required"}
@@ -214,7 +389,7 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
               )}
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">
                 +91
               </span>
               <input
@@ -232,42 +407,63 @@ export function DiwaliOrderForm({ initialBoxId }: { initialBoxId?: string }) {
           </div>
         </div>
 
-        <div>
+        <div className="mt-4">
           <label className="eyebrow mb-1.5 block text-muted" htmlFor="notes">
-            Special Requests / Corporate Message (Optional)
+            Special Requests / Corporate Message (ऐच्छिक संदेश)
           </label>
           <textarea
             id="notes"
             name="notes"
             rows={2}
-            placeholder="e.g. Please pack by 25th Oct, corporate greeting card required, etc."
+            placeholder="e.g. Please pack in pink bell box, need corporate greeting card, etc."
             className="field text-xs sm:text-sm"
           />
         </div>
       </div>
 
+      {/* -------------------------------------------------------------
+          LIVE ORDER SUMMARY
+          ------------------------------------------------------------- */}
+      <div className="my-6 rounded-2xl border border-gold/40 bg-gradient-to-r from-gold-soft/60 via-paper to-gold-soft/60 p-4 shadow-xs">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="eyebrow text-gold-deep">Live Summary • एकूण निवड</p>
+            <p className="text-sm font-bold text-ink">
+              {totalBoxes} Box{totalBoxes === 1 ? "" : "es"} • Pickup: {selectedDate}
+            </p>
+            <p className="text-[0.7rem] text-muted">{selectedSlot}</p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="eyebrow text-gold-deep">Grand Total • एकूण रक्कम</p>
+            <p className="text-2xl font-extrabold text-forest">{formatPrice(totalPrice)}</p>
+          </div>
+        </div>
+      </div>
+
       {state?.error && (
-        <p role="alert" className="mt-4 rounded-xl bg-rose/10 px-4 py-3 text-xs font-medium text-rose">
-          {state.error}
+        <p role="alert" className="mb-4 rounded-xl bg-rose/10 px-4 py-3 text-xs font-bold text-rose">
+          ⚠️ {state.error}
         </p>
       )}
 
       {/* Submit Button */}
-      <div className="mt-6 border-t border-line pt-4">
-        <button
-          type="submit"
-          disabled={pending || totalBoxes === 0 || !isPhoneValid}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-forest py-3.5 text-xs font-bold uppercase tracking-wider text-paper shadow-luxe transition hover:bg-forest-2 active:scale-98 disabled:opacity-50 cursor-pointer sm:text-sm"
-        >
-          {pending ? (
-            <span>Placing Order…</span>
-          ) : (
-            <span>
-              Confirm Order for {totalBoxes} Box{totalBoxes === 1 ? "" : "es"} ({formatPrice(totalPrice)}) →
-            </span>
-          )}
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={pending || totalBoxes === 0 || !isPhoneValid}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-forest py-4 text-xs font-bold uppercase tracking-wider text-paper shadow-luxe transition hover:bg-forest-2 active:scale-98 disabled:opacity-40 cursor-pointer sm:text-sm"
+      >
+        {pending ? (
+          <span>Confirming Pre-Order… (नोंदवत आहे…)</span>
+        ) : (
+          <span>
+            Confirm Pre-Order for {totalBoxes} Box{totalBoxes === 1 ? "" : "es"} ({formatPrice(totalPrice)}) →
+          </span>
+        )}
+      </button>
+
+      <p className="mt-2.5 text-center text-[0.68rem] text-muted">
+        No online payment required. Pay directly upon pickup at our shop (Shoppers Orbit Pune).
+      </p>
     </form>
   );
 }

@@ -37,7 +37,7 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
   const { displayName, variants } = extractVariants(p.name);
 
   // -------------------------------------------------------------------
-  // 1. COMPACT TABLE CARD (Default: Simple, crisp, big bold text, no MRP strikethrough)
+  // 1. COMPACT TABLE CARD (Default: Simple, crisp, big bold text)
   // -------------------------------------------------------------------
   if (viewMode === "table") {
     return (
@@ -45,12 +45,12 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
         <div>
           {/* Product Name in BIG, clear, premium bold text */}
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-display text-lg font-bold leading-tight text-ink sm:text-[1.3rem]">
+            <h3 className="font-display text-base font-bold leading-snug text-ink sm:text-[1.25rem]">
               {displayName}
             </h3>
 
             {hasImages && (
-              <span className="shrink-0 rounded-md bg-gold-soft/60 px-1.5 py-0.5 text-[0.65rem] font-semibold text-gold-deep">
+              <span className="shrink-0 rounded-md bg-gold-soft/70 px-1.5 py-0.5 text-[0.62rem] font-semibold text-gold-deep">
                 {imageList.length} photo{imageList.length > 1 ? "s" : ""}
               </span>
             )}
@@ -74,17 +74,19 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
           <div className="mt-3 overflow-hidden rounded-xl border border-line bg-white">
             <table className="w-full border-collapse text-left text-xs sm:text-sm">
               <thead>
-                <tr className="border-b border-line bg-ivory/60 text-[0.66rem] font-bold uppercase tracking-wider text-muted sm:text-[0.7rem]">
-                  <th className="px-2.5 py-1.5 sm:px-3 sm:py-2">Tier</th>
-                  <th className="px-2.5 py-1.5 text-right sm:px-3 sm:py-2">Rate</th>
-                  <th className="px-2.5 py-1.5 text-right sm:px-3 sm:py-2">Terms</th>
+                <tr className="border-b border-line bg-ivory/70 text-[0.65rem] font-bold uppercase tracking-wider text-muted sm:text-[0.68rem]">
+                  <th className="px-2.5 py-1.5 sm:px-3 sm:py-2">Price Tier • प्रकार</th>
+                  <th className="px-2.5 py-1.5 text-right sm:px-3 sm:py-2">Rate • दर</th>
+                  <th className="px-2.5 py-1.5 text-right sm:px-3 sm:py-2">Terms • अटी</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line/60">
-                {/* MRP Row — NO strikethrough, clean clear number */}
+                {/* MRP Row */}
                 <tr>
-                  <td className="px-2.5 py-2 font-medium text-muted sm:px-3">MRP</td>
-                  <td className="px-2.5 py-2 text-right text-sm font-semibold text-ink sm:px-3 sm:text-base">
+                  <td className="px-2.5 py-2 font-medium text-muted sm:px-3">
+                    MRP <span className="text-[0.65rem] text-muted/70">(किरकोळ)</span>
+                  </td>
+                  <td className="px-2.5 py-2 text-right text-sm font-bold text-ink sm:px-3 sm:text-base">
                     {formatPrice(p.mrp)}
                   </td>
                   <td className="px-2.5 py-2 text-right text-[0.7rem] text-muted sm:px-3 sm:text-xs">
@@ -94,24 +96,28 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
 
                 {/* Member Rate Row */}
                 <tr className="bg-forest/[0.04]">
-                  <td className="px-2.5 py-2 font-bold text-forest sm:px-3">Member</td>
+                  <td className="px-2.5 py-2 font-bold text-forest sm:px-3">
+                    Member <span className="text-[0.65rem] text-forest-2">(सभासद)</span>
+                  </td>
                   <td className="px-2.5 py-2 text-right text-base font-extrabold text-forest sm:px-3 sm:text-lg">
                     {formatPrice(p.member_price)}
                   </td>
                   <td className="px-2.5 py-2 text-right text-[0.72rem] font-bold text-forest sm:px-3 sm:text-xs">
-                    {savings > 0 ? `Save ${formatPrice(savings)}` : "Special"}
+                    {savings > 0 ? `Save ${formatPrice(savings)} (बचत)` : "Special"}
                   </td>
                 </tr>
 
                 {/* Wholesale Rate Row */}
                 {hasWholesale ? (
                   <tr className="bg-gold-soft/30">
-                    <td className="px-2.5 py-2 font-bold text-gold-deep sm:px-3">Wholesale</td>
+                    <td className="px-2.5 py-2 font-bold text-gold-deep sm:px-3">
+                      Wholesale <span className="text-[0.65rem] text-gold-deep/80">(घाऊक)</span>
+                    </td>
                     <td className="px-2.5 py-2 text-right text-base font-extrabold text-gold-deep sm:px-3 sm:text-lg">
                       {formatPrice(p.wholesale_price)}
                     </td>
                     <td className="px-2.5 py-2 text-right text-[0.72rem] font-semibold text-gold-deep sm:px-3 sm:text-xs">
-                      Min {p.wholesale_min_qty} pcs
+                      Min {p.wholesale_min_qty} pcs (किमान)
                     </td>
                   </tr>
                 ) : null}
@@ -124,7 +130,7 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
   }
 
   // -------------------------------------------------------------------
-  // 2. PHOTO CARD VIEW (With images & big text placeholder)
+  // 2. PHOTO CARD VIEW (With images & clean rate layout)
   // -------------------------------------------------------------------
   const currentImageUrl = imageList[activeImgIndex] || imageList[0];
   const hasMultipleImages = imageList.length > 1;
@@ -163,7 +169,7 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
                   type="button"
                   onClick={handlePrev}
                   aria-label="Previous"
-                  className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1 text-forest shadow sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1 text-forest shadow sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                 >
                   <ChevronLeftIcon />
                 </button>
@@ -171,7 +177,7 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
                   type="button"
                   onClick={handleNext}
                   aria-label="Next"
-                  className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1 text-forest shadow sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-1 text-forest shadow sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                 >
                   <ChevronRightIcon />
                 </button>
@@ -186,7 +192,7 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
                         e.stopPropagation();
                         setActiveImgIndex(idx);
                       }}
-                      className={`size-1.5 rounded-full transition-all ${
+                      className={`size-1.5 rounded-full transition-all cursor-pointer ${
                         idx === activeImgIndex ? "w-3 bg-gold" : "bg-ink/20"
                       }`}
                     />
@@ -213,15 +219,15 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
         </h3>
 
         <div className="mt-2.5 space-y-1 text-xs sm:text-sm">
-          {/* MRP — NO STRIKETHROUGH */}
+          {/* MRP */}
           <div className="flex items-baseline justify-between">
-            <span className="font-medium text-muted">MRP</span>
+            <span className="font-medium text-muted">MRP (किरकोळ)</span>
             <span className="font-semibold text-ink">{formatPrice(p.mrp)}</span>
           </div>
 
           {/* Member Price */}
           <div className="flex items-baseline justify-between">
-            <span className="font-bold text-forest">Member</span>
+            <span className="font-bold text-forest">Member (सभासद)</span>
             <span className="text-base font-extrabold text-forest">{formatPrice(p.member_price)}</span>
           </div>
         </div>
@@ -229,10 +235,10 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
         {hasWholesale && (
           <div className="mt-2.5 rounded-lg border border-gold/30 bg-gold-soft/50 px-2.5 py-1.5 text-xs">
             <div className="flex items-baseline justify-between font-bold text-gold-deep">
-              <span>Wholesale</span>
+              <span>Wholesale (घाऊक)</span>
               <span className="text-sm">{formatPrice(p.wholesale_price)}</span>
             </div>
-            <span className="text-[0.68rem] text-muted">Min. {p.wholesale_min_qty} pcs</span>
+            <span className="text-[0.68rem] text-muted">Min. {p.wholesale_min_qty} pcs (किमान)</span>
           </div>
         )}
       </div>
