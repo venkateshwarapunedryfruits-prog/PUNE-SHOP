@@ -8,17 +8,21 @@ export default async function DiwaliOrdersPage() {
   const supabase = await createClient();
 
   let orders: DiwaliOrder[] = [];
+  let loadError: string | undefined;
   try {
     const { data, error } = await supabase
       .from("diwali_orders")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      orders = data as DiwaliOrder[];
+    if (error) {
+      loadError = error.message;
+    } else {
+      orders = (data as DiwaliOrder[]) ?? [];
     }
   } catch (err) {
-    console.warn("Could not fetch diwali_orders:", err);
+    console.error("Could not fetch diwali_orders:", err);
+    loadError = err instanceof Error ? err.message : "Unknown error";
   }
 
   return (
@@ -32,7 +36,7 @@ export default async function DiwaliOrdersPage() {
         </div>
       </div>
 
-      <DiwaliOrdersTable orders={orders} />
+      <DiwaliOrdersTable orders={orders} loadError={loadError} />
     </>
   );
 }

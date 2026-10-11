@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { Product } from "@/lib/types";
 
 export type FormState = { error?: string; ok?: boolean } | undefined;
 
@@ -185,7 +186,7 @@ export async function saveProduct(_: FormState, formData: FormData): Promise<For
   const allImages = [...retainedImages, ...newlyUploadedUrls];
   const primaryImageUrl = allImages.length > 0 ? allImages[0] : null;
 
-  const row: Record<string, any> = {
+  const row: Partial<Omit<Product, "id">> = {
     name,
     category_id,
     mrp,

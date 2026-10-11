@@ -1,11 +1,32 @@
 import { site } from "./site";
-import type { Category, Product } from "./types";
+import type { Category } from "./types";
+import type { CatalogItem } from "./variants";
+
+/** The parts of jsPDF and its autotable plugin used here (both load from a CDN at runtime). */
+type JsPdfDoc = {
+  internal: { pageSize: { getWidth(): number; getHeight(): number } };
+  addPage(): void;
+  rect(x: number, y: number, w: number, h: number, style: string): void;
+  roundedRect(x: number, y: number, w: number, h: number, rx: number, ry: number, style: string): void;
+  setFillColor(r: number, g: number, b: number): void;
+  setTextColor(r: number, g: number, b: number): void;
+  setFont(name: string, style: string): void;
+  setFontSize(size: number): void;
+  text(text: string, x: number, y: number, options?: { align?: "left" | "center" | "right" }): void;
+  save(filename: string): void;
+  autoTable(options: Record<string, unknown> & { didDrawPage?: (data: { pageNumber: number }) => void }): void;
+  lastAutoTable: { finalY: number };
+};
+
+type JsPdfConstructor = new (options?: {
+  orientation?: "p" | "portrait" | "l" | "landscape";
+  unit?: "pt" | "mm" | "in" | "px";
+  format?: string | number[];
+}) => JsPdfDoc;
 
 declare global {
   interface Window {
-    jspdf?: {
-      jsPDF: new (options?: { orientation?: "p" | "portrait" | "l" | "landscape"; unit?: "pt" | "mm" | "in" | "px"; format?: string | number[] }) => any;
-    };
+    jspdf?: { jsPDF: JsPdfConstructor };
   }
 }
 
@@ -15,6 +36,31 @@ function pdfPrice(value: number | string | null | undefined): string {
   const num = Number(value);
   if (Number.isNaN(num)) return "—";
   return `Rs. ${num.toLocaleString("en-IN")}`;
+}
+
+/**
+ * The PDF font (Helvetica) has no Devanagari: one Marathi letter turns the whole line into junk.
+ * Keeps Latin-1 text (what Helvetica can draw), then tidies brackets/spaces left behind.
+ */
+function pdfText(text: string): string {
+  return text.replace(/[^\u0020-\u00FF–—•]/g, "").replace(/\(\s*\)/g, "").replace(/\s+/g, " ").trim();
+}
+
+/** English half of "English / मराठी" names, with merged variants listed after it. */
+function pdfName(p: CatalogItem): string {
+  const english = p.name.split(" / ")[0];
+  const variants = p.variants?.map((v) => v.labelEn).join(", ");
+  return pdfText(variants ? `${english} (${variants})` : english);
+}
+
+/** Name for the HTML print view, which can show Marathi. */
+function printName(p: CatalogItem): string {
+  const variants = p.variants?.map((v) => v.label).join(", ");
+  return escapeHtml(variants ? `${p.name} (${variants})` : p.name);
+}
+
+function escapeHtml(text: string) {
+  return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 /** Loads an external script dynamically. */
@@ -34,7 +80,7 @@ function loadScript(src: string): Promise<void> {
 }
 
 /** Ensures jsPDF and jspdf-autotable are loaded on the window. */
-async function loadJsPdfAndAutoTable(): Promise<any> {
+async function loadJsPdfAndAutoTable(): Promise<JsPdfConstructor> {
   if (window.jspdf?.jsPDF) {
     return window.jspdf.jsPDF;
   }
@@ -48,7 +94,7 @@ async function loadJsPdfAndAutoTable(): Promise<any> {
 
 export type ExportRateListOptions = {
   categories: Category[];
-  products: Product[];
+  products: CatalogItem[];
   selectedCategoryId?: string;
 };
 
@@ -137,7 +183,7 @@ export async function downloadRateListPdf({
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(18, 48, 31);
-      doc.text(section.name.toUpperCase(), margin + 3, currentY + 5.5);
+      doc.text(pdfText(section.name).toUpperCase(), margin + 3, currentY + 5.5);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
@@ -155,7 +201,7 @@ export async function downloadRateListPdf({
 
         return [
           String(idx + 1),
-          p.name,
+          pdfName(p),
           pdfPrice(p.mrp),
           pdfPrice(p.member_price),
           wholesaleStr,
@@ -163,7 +209,7 @@ export async function downloadRateListPdf({
         ];
       });
 
-      (doc as any).autoTable({
+      doc.autoTable({
         startY: currentY,
         margin: { left: margin, right: margin },
         head: [["#", "Product Name / Fragrance", "MRP", "Member Rate", "Wholesale Rate", "Min Qty"]],
@@ -189,14 +235,14 @@ export async function downloadRateListPdf({
           fillColor: [250, 247, 240],
         },
         columnStyles: {
-          0: { cellWidth: 8, halign: "center", fontStyle: "bold" },
-          1: { cellWidth: 80, fontStyle: "bold" }, // Generous width for product names
+          0: { cellWidth: 10, halign: "center", fontStyle: "bold" },
+          1: { cellWidth: 78, fontStyle: "bold" }, // Generous width for product names
           2: { cellWidth: 24, halign: "right", textColor: [120, 110, 100] },
           3: { cellWidth: 25, halign: "right", fontStyle: "bold", textColor: [18, 48, 31] },
           4: { cellWidth: 26, halign: "right", fontStyle: "bold", textColor: [138, 106, 54] },
           5: { cellWidth: 23, halign: "center", textColor: [90, 85, 80] },
         },
-        didDrawPage: (data: any) => {
+        didDrawPage: (data) => {
           // Bottom Footer
           doc.setFont("helvetica", "normal");
           doc.setFontSize(7.5);
@@ -210,7 +256,7 @@ export async function downloadRateListPdf({
         },
       });
 
-      currentY = (doc as any).lastAutoTable.finalY + 8;
+      currentY = doc.lastAutoTable.finalY + 8;
     });
 
     // Save PDF
@@ -330,7 +376,7 @@ export function printRateSheetFallback({
                   (p, i) => `
                 <tr>
                   <td class="num">${i + 1}</td>
-                  <td class="name">${p.name}</td>
+                  <td class="name">${printName(p)}</td>
                   <td class="mrp">${pdfPrice(p.mrp)}</td>
                   <td class="member">${pdfPrice(p.member_price)}</td>
                   <td class="wholesale">${p.wholesale_enabled && p.wholesale_price != null ? pdfPrice(p.wholesale_price) : "—"}</td>

@@ -11,48 +11,43 @@ import type { Category, Product } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 async function getCatalog(): Promise<{ categories: Category[]; products: Product[]; error?: string }> {
+  // No database connected (local preview): show the built-in sample catalogue
   if (!isSupabaseConfigured) {
     return { categories: STARTER_CATEGORIES, products: STARTER_PRODUCTS };
   }
 
+  // With a database, never fall back to the sample catalogue: its prices are not the shop's.
+  // If loading fails, the page says the rate list is unavailable instead.
   try {
     const supabase = createPublicClient();
     const catsPromise = supabase.from("categories").select("id, name").order("created_at");
 
-    let products: Product[] = [];
-    let prodsError: string | undefined;
-
-    const prodsRes = await supabase
+    const full = await supabase
       .from("products")
       .select("id, category_id, name, image_url, images, is_image, mrp, member_price, wholesale_enabled, wholesale_price, wholesale_min_qty, is_available")
       .eq("is_available", true)
       .order("name");
 
-    if (prodsRes.error && prodsRes.error.message?.toLowerCase().includes("column")) {
-      const fallback = await supabase
-        .from("products")
-        .select("id, category_id, name, image_url, mrp, member_price, wholesale_enabled, wholesale_price, wholesale_min_qty, is_available")
-        .eq("is_available", true)
-        .order("name");
-      products = (fallback.data as unknown as Product[]) ?? [];
-      prodsError = fallback.error?.message;
-    } else {
-      products = (prodsRes.data as unknown as Product[]) ?? [];
-      prodsError = prodsRes.error?.message;
-    }
+    // Databases that haven't run the multiple-images migration have no images / is_image columns
+    const prods = full.error?.message?.toLowerCase().includes("column")
+      ? await supabase
+          .from("products")
+          .select("id, category_id, name, image_url, mrp, member_price, wholesale_enabled, wholesale_price, wholesale_min_qty, is_available")
+          .eq("is_available", true)
+          .order("name")
+      : full;
 
     const cats = await catsPromise;
-    const dbCats = cats.data ?? [];
-
-    // If database is empty or has no products yet, gracefully use starter catalogue
-    if (products.length === 0) {
-      return { categories: STARTER_CATEGORIES, products: STARTER_PRODUCTS };
+    const error = prods.error?.message ?? cats.error?.message;
+    if (error) {
+      console.error("getCatalog error:", error);
+      return { categories: [], products: [], error };
     }
 
-    return { categories: dbCats.length > 0 ? dbCats : STARTER_CATEGORIES, products, error: prodsError };
+    return { categories: cats.data ?? [], products: (prods.data as unknown as Product[]) ?? [] };
   } catch (err) {
-    console.error("getCatalog error, falling back to starter catalogue:", err);
-    return { categories: STARTER_CATEGORIES, products: STARTER_PRODUCTS };
+    console.error("getCatalog error:", err);
+    return { categories: [], products: [], error: "Could not load the rate list." };
   }
 }
 

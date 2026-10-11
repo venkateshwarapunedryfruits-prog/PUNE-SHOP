@@ -7,6 +7,8 @@ import { formatPrice } from "@/lib/types";
 
 type Props = {
   orders: DiwaliOrder[];
+  /** Set when the orders could not be fetched, so an empty list isn't mistaken for "no orders" */
+  loadError?: string;
 };
 
 const STATUS_CONFIG: Record<
@@ -20,11 +22,12 @@ const STATUS_CONFIG: Record<
   cancelled: { label: "Cancelled", badgeClass: "bg-rose/10 text-rose border-rose/20" },
 };
 
-export function DiwaliOrdersTable({ orders }: Props) {
+export function DiwaliOrdersTable({ orders, loadError }: Props) {
   const [filter, setFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [localOrders, setLocalOrders] = useState<DiwaliOrder[]>(orders);
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(loadError ? `Could not load orders: ${loadError}` : null);
 
   const q = query.trim().toLowerCase();
   const filtered = localOrders.filter((o) => {
@@ -47,20 +50,34 @@ export function DiwaliOrdersTable({ orders }: Props) {
     .filter((o) => o.status !== "cancelled")
     .reduce((sum, o) => sum + Number(o.quantity || 0), 0);
 
+  // Changes show immediately and are undone if the server refuses them (e.g. signed out)
   function handleStatusChange(id: string, newStatus: DiwaliOrder["status"]) {
+    const previous = localOrders.find((o) => o.id === id)?.status;
+    setError(null);
     setLocalOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status: newStatus } : o))
     );
     startTransition(async () => {
-      await updateDiwaliOrderStatus(id, newStatus);
+      const res = await updateDiwaliOrderStatus(id, newStatus);
+      if (res?.error && previous) {
+        setError(`Could not update the order: ${res.error}`);
+        setLocalOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: previous } : o)));
+      }
     });
   }
 
   function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this Diwali gift box order?")) return;
+    const index = localOrders.findIndex((o) => o.id === id);
+    const removed = localOrders[index];
+    setError(null);
     setLocalOrders((prev) => prev.filter((o) => o.id !== id));
     startTransition(async () => {
-      await deleteDiwaliOrder(id);
+      const res = await deleteDiwaliOrder(id);
+      if (res?.error && removed) {
+        setError(`Could not delete the order: ${res.error}`);
+        setLocalOrders((prev) => [...prev.slice(0, index), removed, ...prev.slice(index)]);
+      }
     });
   }
 
@@ -123,13 +140,21 @@ export function DiwaliOrdersTable({ orders }: Props) {
         />
       </div>
 
+      {error && (
+        <p role="alert" className="rounded-xl bg-rose/10 px-4 py-3 text-sm text-rose">
+          {error}
+        </p>
+      )}
+
       {/* Orders List / Table */}
       <div className="overflow-hidden rounded-3xl border border-line bg-paper">
         {filtered.length === 0 ? (
           <div className="p-12 text-center text-muted">
-            <p className="font-display text-2xl text-forest">No orders found</p>
+            <p className="font-display text-2xl text-forest">{loadError ? "Orders not loaded" : "No orders found"}</p>
             <p className="mt-1 text-xs">
-              {localOrders.length === 0
+              {loadError
+                ? "Refresh the page to try again."
+                : localOrders.length === 0
                 ? "No Diwali gift box orders placed yet. They will appear here once customers order."
                 : "No orders match your filter/search criteria."}
             </p>

@@ -6,9 +6,6 @@ export type DiwaliBoxVariant = {
   weightPerBox: number; // 50 or 100 in grams
   totalWeight: number; // 200g, 400g, 300g, 600g
   contents: string[];
-  dryFruitCost: number;
-  boxCost: number;
-  roundup: number;
   price: number; // ₹240, ₹450, ₹330, ₹640
   image: string;
 };
@@ -22,9 +19,6 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     weightPerBox: 50,
     totalWeight: 200,
     contents: ["Cashew (काजू)", "Yellow Raisins (बेदाणे)", "California Almonds (बदाम)", "Jumbo Pista (पिस्ता)"],
-    dryFruitCost: 213.25,
-    boxCost: 20,
-    roundup: 6.75,
     price: 240,
     image: "/diwali/box-4-50g-full.jpg",
   },
@@ -36,9 +30,6 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     weightPerBox: 100,
     totalWeight: 400,
     contents: ["Cashew (काजू)", "Jumbo Pista (पिस्ता)", "Golden Raisins (बेदाणे)", "California Almonds (बदाम)"],
-    dryFruitCost: 426.50,
-    boxCost: 20,
-    roundup: 3.50,
     price: 450,
     image: "/diwali/box-4-100g-full.jpg",
   },
@@ -50,9 +41,6 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     weightPerBox: 50,
     totalWeight: 300,
     contents: ["Cashew (काजू)", "Almonds (बदाम)", "Yellow Raisins (बेदाणे)", "Akrod Walnut (अक्रोड)", "Jumbo Pista (पिस्ता)", "Black Raisins (काळे मनुके)"],
-    dryFruitCost: 310.00,
-    boxCost: 20,
-    roundup: 0,
     price: 330,
     image: "/diwali/box-6-50g-full.jpg",
   },
@@ -64,22 +52,9 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     weightPerBox: 100,
     totalWeight: 600,
     contents: ["Akrod Walnut (अक्रोड)", "Jumbo Pista (पिस्ता)", "Black Raisins (काळे मनुके)", "Golden Raisins (बेदाणे)", "Cashew (काजू)", "Almonds (बदाम)"],
-    dryFruitCost: 620.00,
-    boxCost: 20,
-    roundup: 0,
     price: 640,
     image: "/diwali/box-6-100g-full.jpg",
   },
-];
-
-export const DRY_FRUIT_RATES = [
-  { item: "Cashew (Kaju)", ratePerKg: 970, perGram: "₹0.97/g" },
-  { item: "Almonds (Badam)", ratePerKg: 1150, perGram: "₹1.15/g" },
-  { item: "Yellow Raisins (Kismis)", ratePerKg: 500, perGram: "₹0.50/g" },
-  { item: "Black Raisins (Kali Darakh)", ratePerKg: 300, perGram: "₹0.30/g" },
-  { item: "Pista (Pistachio)", ratePerKg: 1640, perGram: "₹1.64/g" },
-  { item: "Akrod (Walnut Kernels)", ratePerKg: 1640, perGram: "₹1.64/g" },
-  { item: "Decorative Gift Box Packaging", ratePerKg: 20, perGram: "₹20 / box" },
 ];
 
 export type OrderItemDetail = {

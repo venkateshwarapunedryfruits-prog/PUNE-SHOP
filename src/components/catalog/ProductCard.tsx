@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { formatPrice, type Product } from "@/lib/types";
+import { formatPrice } from "@/lib/types";
+import type { CatalogItem } from "@/lib/variants";
 
 type Props = {
-  product: Product;
+  product: CatalogItem;
   viewMode?: "table" | "photo";
 };
 
@@ -34,7 +35,12 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
   const [activeImgIndex, setActiveImgIndex] = useState(0);
   const hasWholesale = p.wholesale_enabled && p.wholesale_price != null;
   const savings = p.mrp > p.member_price ? p.mrp - p.member_price : 0;
-  const { displayName, variants } = extractVariants(p.name);
+  // Merged variants carry their own photo; older "Name (A, B, C)" products only have labels
+  const parsed = extractVariants(p.name);
+  const displayName = p.variants?.length ? p.name : parsed.displayName;
+  const variants: ChipVariant[] = p.variants?.length
+    ? p.variants
+    : parsed.variants.map((label) => ({ label, image: null }));
 
   // -------------------------------------------------------------------
   // 1. COMPACT TABLE CARD (Default: Simple, crisp, big bold text)
@@ -56,19 +62,7 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
             )}
           </div>
 
-          {/* Fragrance / Variant chips if multiple fragrances in one product */}
-          {variants.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {variants.map((v, i) => (
-                <span
-                  key={i}
-                  className="rounded border border-line bg-white px-1.5 py-0.5 text-[0.66rem] font-medium text-ink"
-                >
-                  {v}
-                </span>
-              ))}
-            </div>
-          )}
+          {variants.length > 0 && <VariantChips variants={variants} />}
 
           {/* Clean, compact rate table */}
           <div className="mt-3 overflow-hidden rounded-xl border border-line bg-white">
@@ -218,6 +212,17 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
           {displayName}
         </h3>
 
+        {variants.length > 0 && (
+          <VariantChips
+            variants={variants}
+            activeImage={showImage ? currentImageUrl : undefined}
+            onPick={(image) => {
+              const i = imageList.indexOf(image);
+              if (i !== -1) setActiveImgIndex(i);
+            }}
+          />
+        )}
+
         <div className="mt-2.5 space-y-1 text-xs sm:text-sm">
           {/* MRP */}
           <div className="flex items-baseline justify-between">
@@ -243,6 +248,51 @@ export function ProductCard({ product: p, viewMode = "table" }: Props) {
         )}
       </div>
     </article>
+  );
+}
+
+type ChipVariant = { label: string; image: string | null };
+
+function VariantChips({
+  variants,
+  activeImage,
+  onPick,
+}: {
+  variants: ChipVariant[];
+  activeImage?: string;
+  onPick?: (image: string) => void;
+}) {
+  return (
+    <div className="mt-2">
+      <p className="text-[0.7rem] font-semibold text-muted">
+        {variants.length} variants • {variants.length} प्रकार
+      </p>
+      <ul className="mt-1 flex flex-wrap gap-1.5">
+        {variants.map((v) => {
+          const active = Boolean(activeImage) && v.image === activeImage;
+          return (
+            <li key={v.label}>
+              {onPick && v.image ? (
+                <button
+                  type="button"
+                  onClick={() => onPick(v.image!)}
+                  aria-pressed={active}
+                  className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                    active ? "border-forest bg-forest text-paper" : "border-line bg-white text-ink hover:border-gold"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ) : (
+                <span className="inline-block rounded-full border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink">
+                  {v.label}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

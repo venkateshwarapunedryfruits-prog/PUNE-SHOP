@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
-import type { Category, Product } from "@/lib/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DIWALI_BOXES } from "@/lib/diwali";
+import { site } from "@/lib/site";
+import { formatPrice, type Category, type Product } from "@/lib/types";
+import { groupVariants, searchText } from "@/lib/variants";
 import { ProductCard } from "./ProductCard";
 import { DownloadRateListButton } from "./DownloadRateListButton";
 
@@ -15,12 +18,27 @@ type Props = {
 
 const PREVIEW_COUNT = 4;
 
+// Read from the /diwali page data so these never disagree with the order page
+const DIWALI_FROM = formatPrice(Math.min(...DIWALI_BOXES.map((b) => b.price)));
+
 export function Catalog({ categories, products, error }: Props) {
   const [active, setActive] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "photo">("table");
   const topRef = useRef<HTMLDivElement>(null);
   const productsSectionRef = useRef<HTMLDivElement>(null);
+  // Fragrance/flavour variants with identical prices show as one card
+  const items = useMemo(() => groupVariants(products), [products]);
+
+  // The toolbar sticks just below the site header, whose height changes with screen width
+  const [headerHeight, setHeaderHeight] = useState(58);
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const observer = new ResizeObserver(() => setHeaderHeight(header.offsetHeight));
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
 
   function selectCategory(id: string) {
     setActive(id);
@@ -34,9 +52,9 @@ export function Catalog({ categories, products, error }: Props) {
   const sections = useMemo(
     () =>
       categories
-        .map((c) => ({ ...c, products: products.filter((p) => p.category_id === c.id) }))
+        .map((c) => ({ ...c, products: items.filter((p) => p.category_id === c.id) }))
         .filter((c) => c.products.length > 0),
-    [categories, products],
+    [categories, items],
   );
 
   function goToCategory(keyword: string) {
@@ -51,7 +69,7 @@ export function Catalog({ categories, products, error }: Props) {
   const q = query.trim().toLowerCase();
   const visible = sections
     .filter((s) => active === "all" || s.id === active)
-    .map((s) => ({ ...s, products: q ? s.products.filter((p) => p.name.toLowerCase().includes(q)) : s.products }))
+    .map((s) => ({ ...s, products: q ? s.products.filter((p) => searchText(p).includes(q)) : s.products }))
     .filter((s) => s.products.length > 0);
   const resultCount = visible.reduce((n, s) => n + s.products.length, 0);
   const preview = active === "all" && !q;
@@ -69,7 +87,7 @@ export function Catalog({ categories, products, error }: Props) {
           <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/15 px-3 py-0.5 text-[0.62rem] font-bold uppercase tracking-wider text-gold-soft sm:text-[0.68rem]">
-                <span>Official Rate Card • अधिकृत दर सूची ({products.length} Products)</span>
+                <span>Official Rate Card • अधिकृत दर सूची ({items.length} Products)</span>
               </div>
               <h1 className="font-display mt-2 text-2xl font-bold leading-tight text-paper sm:text-3xl md:text-4xl">
                 आमची उत्पादने आणि दर • Products & Rates
@@ -100,7 +118,7 @@ export function Catalog({ categories, products, error }: Props) {
             <div className="shrink-0 pt-2 sm:pt-0">
               <DownloadRateListButton
                 categories={categories}
-                products={products}
+                products={items}
                 activeCategoryId={active}
                 variant="hero"
               />
@@ -122,7 +140,7 @@ export function Catalog({ categories, products, error }: Props) {
                   Diwali Festive Special • दिवाळी विशेष
                 </span>
                 <span className="hidden text-xs font-bold text-gold-deep sm:inline">
-                  Starting at ₹240 / Filled Box
+                  Starting at {DIWALI_FROM} / Box
                 </span>
               </div>
 
@@ -130,23 +148,17 @@ export function Catalog({ categories, products, error }: Props) {
                 Diwali Special Dry Fruit Gift Boxes • दिवाळी गिफ्ट बॉक्सेस
               </h2>
               <p className="mt-0.5 text-xs text-muted sm:text-sm">
-                100% filled 4-box & 6-box gift sets with Cashew, Almonds, Pista, Raisins & Walnut. Pre-order online for store pickup.
+                4-box & 6-box gift sets with Cashew, Almonds, Pista, Raisins & Walnut. Order online and collect from our shop.
               </p>
 
               {/* Quick price pills */}
               <div className="mt-2.5 flex flex-wrap gap-1.5 text-[0.68rem] font-semibold">
-                <span className="rounded-md border border-line bg-white/95 px-2 py-0.5 text-ink shadow-2xs">
-                  4-Box (50g • 200g): <strong className="text-forest font-bold">₹240</strong>
-                </span>
-                <span className="rounded-md border border-line bg-white/95 px-2 py-0.5 text-ink shadow-2xs">
-                  4-Box (100g • 400g): <strong className="text-forest font-bold">₹450</strong>
-                </span>
-                <span className="rounded-md border border-line bg-white/95 px-2 py-0.5 text-ink shadow-2xs">
-                  6-Box (50g • 300g): <strong className="text-forest font-bold">₹330</strong>
-                </span>
-                <span className="rounded-md border border-line bg-white/95 px-2 py-0.5 text-ink shadow-2xs">
-                  6-Box (100g • 600g): <strong className="text-forest font-bold">₹640</strong>
-                </span>
+                {DIWALI_BOXES.map((b) => (
+                  <span key={b.id} className="rounded-md border border-line bg-white/95 px-2 py-0.5 text-ink shadow-2xs">
+                    {b.boxCount}-Box ({b.weightPerBox}g • {b.totalWeight}g):{" "}
+                    <strong className="font-bold text-forest">{formatPrice(b.price)}</strong>
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -183,9 +195,10 @@ export function Catalog({ categories, products, error }: Props) {
         {/* 4 Cards: 2x2 on Mobile, 4-Cols on Desktop */}
         <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {/* Card 1: Dry Fruits */}
-          <div
+          <button
+            type="button"
             onClick={() => goToCategory("dry")}
-            className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/80 bg-paper p-3 shadow-xs transition duration-200 hover:-translate-y-1 hover:border-gold hover:shadow-md cursor-pointer sm:p-3.5"
+            className="group flex flex-col justify-between text-left focus-visible:outline-2 focus-visible:outline-gold overflow-hidden rounded-2xl border border-line/80 bg-paper p-3 shadow-xs transition duration-200 hover:-translate-y-1 hover:border-gold hover:shadow-md cursor-pointer sm:p-3.5"
           >
             <div>
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ivory">
@@ -208,7 +221,7 @@ export function Catalog({ categories, products, error }: Props) {
               <span>दर पाहा (View Rates)</span>
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </div>
-          </div>
+          </button>
 
           {/* Card 2: Gift Boxes (links to Diwali page) */}
           <Link
@@ -225,14 +238,14 @@ export function Catalog({ categories, products, error }: Props) {
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <span className="absolute top-2 right-2 rounded-full bg-forest px-2 py-0.5 text-[0.58rem] font-bold text-gold-soft">
-                  ₹240 पासून
+                  {DIWALI_FROM} पासून
                 </span>
               </div>
               <h3 className="font-display mt-2.5 text-base font-bold text-ink sm:text-lg">
                 भेट बॉक्स <span className="text-xs font-normal text-muted sm:text-sm">(Gift Boxes)</span>
               </h3>
               <p className="mt-0.5 text-xs text-muted line-clamp-1">
-                ४ किंवा ६ डबे • १००% भरलेले
+                ४ किंवा ६ डबे
               </p>
             </div>
             <div className="mt-3 border-t border-line/60 pt-2 text-xs font-bold text-gold-deep transition group-hover:text-forest inline-flex items-center gap-1">
@@ -242,9 +255,10 @@ export function Catalog({ categories, products, error }: Props) {
           </Link>
 
           {/* Card 3: Agarbatti */}
-          <div
+          <button
+            type="button"
             onClick={() => goToCategory("agarbatti")}
-            className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/80 bg-paper p-3 shadow-xs transition duration-200 hover:-translate-y-1 hover:border-gold hover:shadow-md cursor-pointer sm:p-3.5"
+            className="group flex flex-col justify-between text-left focus-visible:outline-2 focus-visible:outline-gold overflow-hidden rounded-2xl border border-line/80 bg-paper p-3 shadow-xs transition duration-200 hover:-translate-y-1 hover:border-gold hover:shadow-md cursor-pointer sm:p-3.5"
           >
             <div>
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ivory">
@@ -267,12 +281,13 @@ export function Catalog({ categories, products, error }: Props) {
               <span>दर पाहा (View Rates)</span>
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </div>
-          </div>
+          </button>
 
           {/* Card 4: Dhoop Cones */}
-          <div
+          <button
+            type="button"
             onClick={() => goToCategory("dhoop")}
-            className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-line/80 bg-paper p-3 shadow-xs transition duration-200 hover:-translate-y-1 hover:border-gold hover:shadow-md cursor-pointer sm:p-3.5"
+            className="group flex flex-col justify-between text-left focus-visible:outline-2 focus-visible:outline-gold overflow-hidden rounded-2xl border border-line/80 bg-paper p-3 shadow-xs transition duration-200 hover:-translate-y-1 hover:border-gold hover:shadow-md cursor-pointer sm:p-3.5"
           >
             <div>
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ivory">
@@ -295,17 +310,21 @@ export function Catalog({ categories, products, error }: Props) {
               <span>दर पाहा (View Rates)</span>
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
       {/* -------------------------------------------------------------
           CATEGORY BAR & TOOLBAR (Sticky)
           ------------------------------------------------------------- */}
-      <div ref={productsSectionRef} className="sticky top-[58px] z-20 mt-6 border-b border-line/80 bg-ivory/95 backdrop-blur-md scroll-mt-20">
+      <div
+        ref={productsSectionRef}
+        style={{ top: headerHeight, scrollMarginTop: headerHeight }}
+        className="sticky z-20 mt-6 border-b border-line/80 bg-ivory/95 backdrop-blur-md"
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2.5 px-4 py-2 sm:px-8 sm:py-2.5">
           {/* Mobile Category Dropdown */}
-          <div className="relative md:hidden">
+          <div className="relative min-w-0 max-w-40 md:hidden">
             <label className="sr-only" htmlFor="category-select-mobile">
               Category
             </label>
@@ -313,9 +332,9 @@ export function Catalog({ categories, products, error }: Props) {
               id="category-select-mobile"
               value={active}
               onChange={(e) => selectCategory(e.target.value)}
-              className="appearance-none rounded-full border border-line bg-paper py-2 pl-3.5 pr-8 text-xs font-bold text-forest shadow-2xs outline-none focus:border-gold"
+              className="w-full appearance-none truncate rounded-full border border-line bg-paper py-2 pl-3.5 pr-8 text-xs font-bold text-forest shadow-2xs outline-none focus:border-gold"
             >
-              <option value="all">All Categories / सर्व ({products.length})</option>
+              <option value="all">All Categories / सर्व ({items.length})</option>
               {sections.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({s.products.length})
@@ -335,7 +354,7 @@ export function Catalog({ categories, products, error }: Props) {
 
           {/* Desktop Category Navigation Tabs */}
           <nav className="no-scrollbar hidden items-center gap-1 overflow-x-auto md:flex" aria-label="Categories">
-            <Tab label="All / सर्व" count={products.length} active={active === "all"} onClick={() => selectCategory("all")} />
+            <Tab label="All / सर्व" count={items.length} active={active === "all"} onClick={() => selectCategory("all")} />
             {sections.map((s) => (
               <Tab
                 key={s.id}
@@ -348,9 +367,9 @@ export function Catalog({ categories, products, error }: Props) {
           </nav>
 
           {/* Right Toolbar: Compact Search & View Mode Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
             {/* Search Input */}
-            <label className="relative block w-36 sm:w-56 md:w-64">
+            <label className="relative block min-w-0 flex-1 sm:w-56 sm:flex-none md:w-64">
               <span className="sr-only">Search products</span>
               <svg
                 viewBox="0 0 24 24"
@@ -478,7 +497,16 @@ export function Catalog({ categories, products, error }: Props) {
               {error ? "Catalogue unavailable • दर यादी लोड होत आहे" : q ? "No products match • उत्पादन सापडले नाही" : "Coming soon"}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {error ? "Please check back shortly." : "Try adjusting your search terms."}
+              {error ? (
+                <>
+                  Please check back shortly, or call us for rates:{" "}
+                  <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="font-bold text-forest underline underline-offset-4">
+                    {site.phone}
+                  </a>
+                </>
+              ) : q ? (
+                "Try adjusting your search terms."
+              ) : null}
             </p>
             {q && (
               <button

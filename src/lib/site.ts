@@ -10,7 +10,7 @@ export const site = {
   addressBilingual: "Shoppers Orbit, Pune, Maharashtra (शॉपर्स ऑर्बिट, पुणे)",
   mapQuery: "Shoppers Orbit Pune",
   phone: "+91 89562 91587",
-  timings: "10:00 AM to 9:00 PM (All 7 Days Open • सर्व दिवस सुरू)",
+  timings: "9:00 AM to 10:00 PM (All 7 Days Open • सर्व दिवस सुरू)",
 };
 
 /** Phone number in the digits-only form wa.me links expect. */
