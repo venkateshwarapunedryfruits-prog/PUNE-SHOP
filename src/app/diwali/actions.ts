@@ -7,13 +7,15 @@ import { site } from "@/lib/site";
 export type OrderFormState =
   | {
       ok?: boolean;
+      /** False when the database insert failed: the customer must send the order on WhatsApp. */
+      saved?: boolean;
       orderId?: string;
       error?: string;
       customerName?: string;
       customerPhone?: string;
-      pickupDate?: string;
-      pickupSlot?: string;
+      notes?: string;
       totalPrice?: number;
+      items?: OrderItemDetail[];
       itemsSummary?: string;
     }
   | undefined;
@@ -21,8 +23,6 @@ export type OrderFormState =
 export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): Promise<OrderFormState> {
   const customerName = String(formData.get("customer_name") ?? "").trim();
   const customerPhone = String(formData.get("customer_phone") ?? "").replace(/\D/g, "");
-  const pickupDate = String(formData.get("pickup_date") ?? "").trim();
-  const pickupSlot = String(formData.get("pickup_slot") ?? "Morning: 10:00 AM – 1:00 PM").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
   if (!customerName) {
@@ -33,18 +33,13 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
     return { error: "Please enter a valid 10-digit mobile number. / कृपया योग्य १०-अंकी मोबाईल नंबर टाका." };
   }
 
-  if (!pickupDate) {
-    return { error: "Please select a store pickup date. / कृपया दुकानातून माल घेण्याची तारीख निवडा." };
-  }
-
   // Parse items from form
   const items: OrderItemDetail[] = [];
   let calculatedTotal = 0;
   let totalBoxes = 0;
 
   for (const box of DIWALI_BOXES) {
-    const qtyRaw = formData.get(`qty_${box.id}`);
-    const qty = Number(qtyRaw);
+    const qty = Number(formData.get(`qty_${box.id}`));
     if (Number.isInteger(qty) && qty > 0) {
       const subtotal = qty * box.price;
       calculatedTotal += subtotal;
@@ -66,7 +61,11 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
   const boxTypeSummary = items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const itemsSummary = items.map((i) => `• ${i.quantity}x ${i.name} (₹${i.subtotal})`).join("\n");
 
+  // The id is generated here rather than read back with .select(): the public may
+  // insert orders but not read them (RLS), and INSERT … RETURNING needs read access.
+  const orderId = crypto.randomUUID();
   const row = {
+    id: orderId,
     customer_name: customerName,
     customer_phone: customerPhone,
     box_type: boxTypeSummary,
@@ -74,57 +73,34 @@ export async function placeDiwaliOrder(_: OrderFormState, formData: FormData): P
     unit_price: items[0].unitPrice,
     total_price: calculatedTotal,
     items_detail: items,
-    delivery_type: `Store Pickup: ${pickupDate} (${pickupSlot})`,
+    delivery_type: "Store Pickup (Shoppers Orbit Pune)",
     address: site.address,
-    notes: [notes, `Pickup: ${pickupDate} [${pickupSlot}]`].filter(Boolean).join(" | "),
+    notes,
     status: "new",
+  };
+
+  const result = {
+    ok: true,
+    customerName,
+    customerPhone,
+    notes,
+    totalPrice: calculatedTotal,
+    items,
+    itemsSummary,
   };
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("diwali_orders")
-      .insert(row)
-      .select("id")
-      .single();
+    const { error } = await supabase.from("diwali_orders").insert(row);
 
     if (error) {
-      console.warn("Could not insert to diwali_orders table (may need SQL migration):", error.message);
-      const fallbackId = crypto.randomUUID();
-      return {
-        ok: true,
-        orderId: fallbackId,
-        customerName,
-        customerPhone,
-        pickupDate,
-        pickupSlot,
-        totalPrice: calculatedTotal,
-        itemsSummary,
-      };
+      console.error("Could not save Diwali order:", error.message);
+      return { ...result, saved: false };
     }
 
-    return {
-      ok: true,
-      orderId: data.id,
-      customerName,
-      customerPhone,
-      pickupDate,
-      pickupSlot,
-      totalPrice: calculatedTotal,
-      itemsSummary,
-    };
-  } catch (err: any) {
+    return { ...result, saved: true, orderId };
+  } catch (err) {
     console.error("Order placement exception:", err);
-    const fallbackId = crypto.randomUUID();
-    return {
-      ok: true,
-      orderId: fallbackId,
-      customerName,
-      customerPhone,
-      pickupDate,
-      pickupSlot,
-      totalPrice: calculatedTotal,
-      itemsSummary,
-    };
+    return { ...result, saved: false };
   }
 }

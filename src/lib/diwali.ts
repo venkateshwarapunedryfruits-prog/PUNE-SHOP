@@ -10,10 +10,7 @@ export type DiwaliBoxVariant = {
   boxCost: number;
   roundup: number;
   price: number; // ₹240, ₹450, ₹330, ₹640
-  description: string;
-  badge?: string;
   image: string;
-  images: string[];
 };
 
 export const DIWALI_BOXES: DiwaliBoxVariant[] = [
@@ -29,10 +26,7 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     boxCost: 20,
     roundup: 6.75,
     price: 240,
-    badge: "Budget Friendly (किफायतशीर)",
-    description: "Packed with 50g each of Premium Cashew, California Almonds, Jumbo Pista & Golden Yellow Raisins in elegant pink & gold bell box.",
     image: "/diwali/box-4-50g-full.jpg",
-    images: ["/diwali/box-4-50g-full.jpg", "/diwali/box-4-50g-tray.jpg", "/diwali/box-4-50g-lid.jpg"],
   },
   {
     id: "4-box-100g",
@@ -46,10 +40,7 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     boxCost: 20,
     roundup: 3.50,
     price: 450,
-    badge: "Most Popular (सर्वाधिक पसंती)",
-    description: "Substantial 400g festive collection with 100g each of Premium Cashew, California Almonds, Jumbo Pista & Raisins in luxury gold ribbon box.",
     image: "/diwali/box-4-100g-full.jpg",
-    images: ["/diwali/box-4-100g-full.jpg", "/diwali/box-4-100g-tray.jpg", "/diwali/box-4-100g-lid.jpg"],
   },
   {
     id: "6-box-50g",
@@ -63,10 +54,7 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     boxCost: 20,
     roundup: 0,
     price: 330,
-    badge: "6 Varieties (६ प्रकार सुकामेवा)",
-    description: "Grand 6-compartment gift box with 50g each of Cashew, Almonds, Pista, Yellow Raisins, Black Raisins & Walnut Kernels in royal traditional diya box.",
     image: "/diwali/box-6-50g-full.jpg",
-    images: ["/diwali/box-6-50g-full.jpg", "/diwali/box-6-50g-tray.jpg", "/diwali/box-6-50g-lid.jpg"],
   },
   {
     id: "6-box-100g",
@@ -80,10 +68,7 @@ export const DIWALI_BOXES: DiwaliBoxVariant[] = [
     boxCost: 20,
     roundup: 0,
     price: 640,
-    badge: "Royal Grand Hamper (रॉयल हॅम्पर)",
-    description: "Royal 600g grand festive hamper with 100g each of Cashew, Almonds, Pista, Yellow Raisins, Black Raisins & Walnut Kernels in luxury blue marble mosaic box.",
     image: "/diwali/box-6-100g-full.jpg",
-    images: ["/diwali/box-6-100g-full.jpg", "/diwali/box-6-100g-tray.jpg", "/diwali/box-6-100g-lid.jpg"],
   },
 ];
 

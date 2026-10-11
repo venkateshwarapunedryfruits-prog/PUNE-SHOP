@@ -11,12 +11,10 @@ export const site = {
   mapQuery: "Shoppers Orbit Pune",
   phone: "+91 89562 91587",
   timings: "10:00 AM to 9:00 PM (All 7 Days Open • सर्व दिवस सुरू)",
-  pickupSlots: [
-    { id: "slot-morning", label: "Morning / सकाळ: 10:00 AM – 1:00 PM", timeRange: "10:00 AM - 1:00 PM" },
-    { id: "slot-afternoon", label: "Afternoon / दुपार: 1:00 PM – 5:00 PM", timeRange: "1:00 PM - 5:00 PM" },
-    { id: "slot-evening", label: "Evening / संध्याकाळ: 5:00 PM – 9:00 PM", timeRange: "5:00 PM - 9:00 PM" },
-  ],
 };
+
+/** Phone number in the digits-only form wa.me links expect. */
+export const whatsappNumber = site.phone.replace(/\D/g, "");
 
 export const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(site.mapQuery)}&output=embed`;
 export const mapDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(site.mapQuery)}`;
